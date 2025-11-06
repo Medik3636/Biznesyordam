@@ -16,6 +16,9 @@ import { ChatSystem } from '@/components/ChatSystem';
 import { TierSelectionModal } from '@/components/TierSelectionModal';
 import { DataExportButton } from '@/components/DataExportButton';
 import { ComprehensiveAnalytics } from '@/components/ComprehensiveAnalytics';
+import { InventoryManagement } from '@/components/InventoryManagement';
+import { OrderManagement } from '@/components/OrderManagement';
+import { StockAlerts } from '@/components/StockAlerts';
 import { useAuth } from '@/hooks/useAuth';
 import { useTierAccess } from '@/hooks/useTierAccess';
 import { useLocation } from 'wouter';
@@ -192,8 +195,10 @@ export default function PartnerDashboard() {
           </div>
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-7">
+            <TabsList className="grid w-full grid-cols-9">
               <TabsTrigger value="overview"><BarChart3 className="w-4 h-4 mr-2" />Umumiy</TabsTrigger>
+              <TabsTrigger value="inventory"><Package className="w-4 h-4 mr-2" />Ombor</TabsTrigger>
+              <TabsTrigger value="orders"><Truck className="w-4 h-4 mr-2" />Buyurtmalar</TabsTrigger>
               <TabsTrigger value="analytics"><FileSpreadsheet className="w-4 h-4 mr-2" />Tahlil</TabsTrigger>
               <TabsTrigger value="products"><Package className="w-4 h-4 mr-2" />Mahsulotlar</TabsTrigger>
               <TabsTrigger value="requests"><Truck className="w-4 h-4 mr-2" />So'rovlar</TabsTrigger>
@@ -203,7 +208,7 @@ export default function PartnerDashboard() {
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
-              {/* ... barcha kontent qoladi ... */}
+              <StockAlerts />
               <div className="equal-grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="shadow-elegant">
                   <CardHeader>

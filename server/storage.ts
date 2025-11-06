@@ -20,6 +20,14 @@ import {
   notifications,
   auditLogs,
   adminPermissions,
+  warehouses,
+  warehouseStock,
+  stockMovements,
+  orders,
+  orderItems,
+  customers,
+  stockAlerts,
+  inventoryReports,
   type User,
   type Partner,
   type Product,
@@ -38,7 +46,15 @@ import {
   type TrendingProduct,
   type Notification,
   type AuditLog,
-  type AdminPermission
+  type AdminPermission,
+  type Warehouse,
+  type WarehouseStock,
+  type StockMovement,
+  type Order,
+  type OrderItem,
+  type Customer,
+  type StockAlert,
+  type InventoryReport
 } from "@shared/schema";
 import { eq, desc, and, gte, lte, sql, or, like, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
@@ -741,6 +757,531 @@ export async function getAdminPermissions(userId: string): Promise<any> {
   }
 }
 
+// ==================== INVENTORY MANAGEMENT FUNCTIONS ====================
+
+// Warehouse operations
+export async function createWarehouse(warehouseData: {
+  name: string;
+  code: string;
+  address: string;
+  city: string;
+  region?: string;
+  capacity?: number;
+  managerId?: string;
+  contactPhone?: string;
+  operatingHours?: any;
+}): Promise<Warehouse> {
+  try {
+    const [warehouse] = await db.insert(warehouses).values({
+      id: nanoid(),
+      name: warehouseData.name,
+      code: warehouseData.code,
+      address: warehouseData.address,
+      city: warehouseData.city,
+      region: warehouseData.region,
+      capacity: warehouseData.capacity || 10000,
+      currentUtilization: '0',
+      isActive: true,
+      managerId: warehouseData.managerId,
+      contactPhone: warehouseData.contactPhone,
+      operatingHours: warehouseData.operatingHours ? JSON.stringify(warehouseData.operatingHours) : null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    
+    return warehouse;
+  } catch (error: any) {
+    throw new StorageError(`Ombor yaratishda xatolik: ${error.message}`, 'CREATE_WAREHOUSE_ERROR');
+  }
+}
+
+export async function getAllWarehouses(): Promise<Warehouse[]> {
+  try {
+    return await db.select().from(warehouses).where(eq(warehouses.isActive, true));
+  } catch (error: any) {
+    console.error('Error getting warehouses:', error);
+    return [];
+  }
+}
+
+export async function getWarehouseById(id: string): Promise<Warehouse | null> {
+  try {
+    const [warehouse] = await db.select().from(warehouses).where(eq(warehouses.id, id));
+    return warehouse || null;
+  } catch (error: any) {
+    console.error('Error getting warehouse:', error);
+    return null;
+  }
+}
+
+// Stock operations
+export async function updateProductStock(
+  productId: string,
+  warehouseId: string,
+  quantity: number,
+  movementType: 'inbound' | 'outbound' | 'transfer' | 'adjustment' | 'return',
+  reason: string,
+  performedBy: string,
+  referenceType?: string,
+  referenceId?: string,
+  notes?: string
+): Promise<{ product: Product; movement: StockMovement }> {
+  try {
+    // Get current product
+    const [product] = await db.select().from(products).where(eq(products.id, productId));
+    if (!product) {
+      throw new StorageError('Mahsulot topilmadi', 'PRODUCT_NOT_FOUND');
+    }
+
+    const previousStock = product.currentStock;
+    let newStock = previousStock;
+
+    // Calculate new stock based on movement type
+    if (movementType === 'inbound' || movementType === 'return') {
+      newStock = previousStock + quantity;
+    } else if (movementType === 'outbound') {
+      newStock = previousStock - quantity;
+      if (newStock < 0) {
+        throw new StorageError('Yetarli mahsulot yo\'q', 'INSUFFICIENT_STOCK');
+      }
+    } else if (movementType === 'adjustment') {
+      newStock = quantity; // Direct set for adjustments
+    }
+
+    const availableStock = newStock - product.reservedStock;
+
+    // Determine stock status
+    let stockStatus: 'in_stock' | 'low_stock' | 'out_of_stock' | 'discontinued' = 'in_stock';
+    if (newStock === 0) {
+      stockStatus = 'out_of_stock';
+    } else if (newStock <= (product.minStockLevel || 10)) {
+      stockStatus = 'low_stock';
+    }
+
+    // Update product stock
+    const [updatedProduct] = await db.update(products)
+      .set({
+        currentStock: newStock,
+        availableStock: availableStock,
+        stockStatus: stockStatus,
+        lastStockUpdate: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(products.id, productId))
+      .returning();
+
+    // Create stock movement record
+    const [movement] = await db.insert(stockMovements).values({
+      id: nanoid(),
+      productId,
+      warehouseId,
+      movementType,
+      quantity: Math.abs(quantity),
+      previousStock,
+      newStock,
+      reason,
+      referenceType,
+      referenceId,
+      performedBy,
+      notes,
+      createdAt: new Date()
+    }).returning();
+
+    // Update warehouse stock
+    const [existingWarehouseStock] = await db.select().from(warehouseStock)
+      .where(and(
+        eq(warehouseStock.warehouseId, warehouseId),
+        eq(warehouseStock.productId, productId)
+      ));
+
+    if (existingWarehouseStock) {
+      await db.update(warehouseStock)
+        .set({
+          quantity: newStock,
+          availableQuantity: availableStock,
+          lastMovement: new Date(),
+          updatedAt: new Date()
+        })
+        .where(eq(warehouseStock.id, existingWarehouseStock.id));
+    } else {
+      await db.insert(warehouseStock).values({
+        id: nanoid(),
+        warehouseId,
+        productId,
+        quantity: newStock,
+        reservedQuantity: 0,
+        availableQuantity: newStock,
+        lastMovement: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+    }
+
+    // Check if alert needed
+    if (stockStatus === 'low_stock' || stockStatus === 'out_of_stock') {
+      await createStockAlert({
+        productId,
+        partnerId: product.partnerId,
+        alertType: stockStatus === 'out_of_stock' ? 'out_of_stock' : 'low_stock',
+        severity: stockStatus === 'out_of_stock' ? 'critical' : 'high',
+        message: stockStatus === 'out_of_stock' 
+          ? `${product.name} tugadi! Zudlik bilan to'ldirish kerak.`
+          : `${product.name} qoldig'i kam (${newStock} dona). Minimum: ${product.minStockLevel}`,
+        currentStock: newStock,
+        threshold: product.minStockLevel || 10
+      });
+    }
+
+    return { product: updatedProduct, movement };
+  } catch (error: any) {
+    throw new StorageError(`Stock yangilashda xatolik: ${error.message}`, 'UPDATE_STOCK_ERROR');
+  }
+}
+
+export async function getStockMovements(filters?: {
+  productId?: string;
+  warehouseId?: string;
+  movementType?: string;
+  startDate?: Date;
+  endDate?: Date;
+}): Promise<StockMovement[]> {
+  try {
+    let query = db.select().from(stockMovements);
+
+    if (filters?.productId) {
+      query = query.where(eq(stockMovements.productId, filters.productId)) as any;
+    }
+    if (filters?.warehouseId) {
+      query = query.where(eq(stockMovements.warehouseId, filters.warehouseId)) as any;
+    }
+    if (filters?.startDate) {
+      query = query.where(gte(stockMovements.createdAt, filters.startDate)) as any;
+    }
+    if (filters?.endDate) {
+      query = query.where(lte(stockMovements.createdAt, filters.endDate)) as any;
+    }
+
+    return await query.orderBy(desc(stockMovements.createdAt));
+  } catch (error: any) {
+    console.error('Error getting stock movements:', error);
+    return [];
+  }
+}
+
+export async function getWarehouseStock(warehouseId: string): Promise<WarehouseStock[]> {
+  try {
+    return await db.select().from(warehouseStock)
+      .where(eq(warehouseStock.warehouseId, warehouseId));
+  } catch (error: any) {
+    console.error('Error getting warehouse stock:', error);
+    return [];
+  }
+}
+
+// Order operations
+export async function createOrder(orderData: {
+  partnerId: string;
+  marketplace: string;
+  marketplaceOrderId?: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  items: Array<{
+    productId: string;
+    quantity: number;
+    unitPrice: string;
+  }>;
+  shippingAddress: any;
+  shippingMethod?: string;
+  warehouseId?: string;
+}): Promise<Order> {
+  try {
+    // Generate order number
+    const orderNumber = `ORD-${Date.now()}-${nanoid(6).toUpperCase()}`;
+
+    // Calculate totals
+    let subtotal = 0;
+    for (const item of orderData.items) {
+      subtotal += parseFloat(item.unitPrice) * item.quantity;
+    }
+
+    const shippingCost = 15000; // Default shipping cost
+    const tax = subtotal * 0.12; // 12% tax
+    const totalAmount = subtotal + shippingCost + tax;
+
+    // Create order
+    const [order] = await db.insert(orders).values({
+      id: nanoid(),
+      orderNumber,
+      partnerId: orderData.partnerId,
+      customerName: orderData.customerName,
+      customerPhone: orderData.customerPhone,
+      customerEmail: orderData.customerEmail,
+      marketplace: orderData.marketplace as any,
+      marketplaceOrderId: orderData.marketplaceOrderId,
+      orderDate: new Date(),
+      status: 'pending',
+      paymentStatus: 'pending',
+      fulfillmentStatus: 'pending',
+      subtotal: subtotal.toString(),
+      shippingCost: shippingCost.toString(),
+      tax: tax.toString(),
+      totalAmount: totalAmount.toString(),
+      shippingAddress: JSON.stringify(orderData.shippingAddress),
+      shippingMethod: orderData.shippingMethod,
+      warehouseId: orderData.warehouseId,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+
+    // Create order items and reserve stock
+    for (const item of orderData.items) {
+      const [product] = await db.select().from(products).where(eq(products.id, item.productId));
+      
+      await db.insert(orderItems).values({
+        id: nanoid(),
+        orderId: order.id,
+        productId: item.productId,
+        productName: product.name,
+        sku: product.sku || undefined,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        discount: '0',
+        tax: (parseFloat(item.unitPrice) * item.quantity * 0.12).toString(),
+        totalPrice: (parseFloat(item.unitPrice) * item.quantity).toString(),
+        status: 'pending',
+        createdAt: new Date()
+      });
+
+      // Reserve stock
+      await db.update(products)
+        .set({
+          reservedStock: product.reservedStock + item.quantity,
+          availableStock: product.currentStock - (product.reservedStock + item.quantity),
+          updatedAt: new Date()
+        })
+        .where(eq(products.id, item.productId));
+    }
+
+    return order;
+  } catch (error: any) {
+    throw new StorageError(`Buyurtma yaratishda xatolik: ${error.message}`, 'CREATE_ORDER_ERROR');
+  }
+}
+
+export async function getOrdersByPartnerId(partnerId: string): Promise<Order[]> {
+  try {
+    return await db.select().from(orders)
+      .where(eq(orders.partnerId, partnerId))
+      .orderBy(desc(orders.createdAt));
+  } catch (error: any) {
+    console.error('Error getting orders:', error);
+    return [];
+  }
+}
+
+export async function getAllOrders(): Promise<Order[]> {
+  try {
+    return await db.select().from(orders).orderBy(desc(orders.createdAt));
+  } catch (error: any) {
+    console.error('Error getting all orders:', error);
+    return [];
+  }
+}
+
+export async function getOrderById(orderId: string): Promise<Order | null> {
+  try {
+    const [order] = await db.select().from(orders).where(eq(orders.id, orderId));
+    return order || null;
+  } catch (error: any) {
+    console.error('Error getting order:', error);
+    return null;
+  }
+}
+
+export async function getOrderItems(orderId: string): Promise<OrderItem[]> {
+  try {
+    return await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+  } catch (error: any) {
+    console.error('Error getting order items:', error);
+    return [];
+  }
+}
+
+export async function updateOrderStatus(
+  orderId: string,
+  status: string,
+  fulfillmentStatus?: string,
+  paymentStatus?: string,
+  userId?: string
+): Promise<Order | null> {
+  try {
+    const updates: any = {
+      status,
+      updatedAt: new Date()
+    };
+
+    if (fulfillmentStatus) updates.fulfillmentStatus = fulfillmentStatus;
+    if (paymentStatus) updates.paymentStatus = paymentStatus;
+
+    if (status === 'shipped') {
+      updates.shippedAt = new Date();
+    } else if (status === 'delivered') {
+      updates.actualDelivery = new Date();
+    }
+
+    const [order] = await db.update(orders)
+      .set(updates)
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    // If order is completed or cancelled, release reserved stock
+    if (status === 'cancelled') {
+      const items = await getOrderItems(orderId);
+      for (const item of items) {
+        const [product] = await db.select().from(products).where(eq(products.id, item.productId));
+        await db.update(products)
+          .set({
+            reservedStock: Math.max(0, product.reservedStock - item.quantity),
+            availableStock: product.currentStock - Math.max(0, product.reservedStock - item.quantity),
+            updatedAt: new Date()
+          })
+          .where(eq(products.id, item.productId));
+      }
+    }
+
+    return order || null;
+  } catch (error: any) {
+    throw new StorageError(`Buyurtma statusini yangilashda xatolik: ${error.message}`, 'UPDATE_ORDER_ERROR');
+  }
+}
+
+// Stock Alert operations
+export async function createStockAlert(alertData: {
+  productId: string;
+  partnerId: string;
+  alertType: string;
+  severity: string;
+  message: string;
+  currentStock?: number;
+  threshold?: number;
+}): Promise<StockAlert> {
+  try {
+    const [alert] = await db.insert(stockAlerts).values({
+      id: nanoid(),
+      productId: alertData.productId,
+      partnerId: alertData.partnerId,
+      alertType: alertData.alertType,
+      severity: alertData.severity,
+      message: alertData.message,
+      currentStock: alertData.currentStock,
+      threshold: alertData.threshold,
+      isResolved: false,
+      createdAt: new Date()
+    }).returning();
+
+    // Also create a notification
+    const [product] = await db.select().from(products).where(eq(products.id, alertData.productId));
+    const [partner] = await db.select().from(partners).where(eq(partners.id, alertData.partnerId));
+    const [user] = await db.select().from(users).where(eq(users.id, partner.userId));
+
+    await db.insert(notifications).values({
+      id: nanoid(),
+      userId: user.id,
+      type: 'stock_alert',
+      title: alertData.alertType === 'out_of_stock' ? 'Mahsulot tugadi!' : 'Mahsulot qoldig\'i kam',
+      message: alertData.message,
+      data: JSON.stringify({
+        productId: alertData.productId,
+        productName: product.name,
+        currentStock: alertData.currentStock,
+        threshold: alertData.threshold
+      }),
+      isRead: false,
+      priority: alertData.severity === 'critical' ? 'urgent' : 'high',
+      createdAt: new Date()
+    });
+
+    return alert;
+  } catch (error: any) {
+    console.error('Error creating stock alert:', error);
+    throw error;
+  }
+}
+
+export async function getStockAlertsByPartnerId(partnerId: string, includeResolved: boolean = false): Promise<StockAlert[]> {
+  try {
+    let query = db.select().from(stockAlerts).where(eq(stockAlerts.partnerId, partnerId));
+    
+    if (!includeResolved) {
+      query = query.where(eq(stockAlerts.isResolved, false)) as any;
+    }
+
+    return await query.orderBy(desc(stockAlerts.createdAt));
+  } catch (error: any) {
+    console.error('Error getting stock alerts:', error);
+    return [];
+  }
+}
+
+export async function resolveStockAlert(alertId: string, resolvedBy: string): Promise<StockAlert | null> {
+  try {
+    const [alert] = await db.update(stockAlerts)
+      .set({
+        isResolved: true,
+        resolvedAt: new Date(),
+        resolvedBy
+      })
+      .where(eq(stockAlerts.id, alertId))
+      .returning();
+
+    return alert || null;
+  } catch (error: any) {
+    console.error('Error resolving stock alert:', error);
+    return null;
+  }
+}
+
+// Inventory statistics
+export async function getInventoryStats(partnerId: string): Promise<any> {
+  try {
+    const partnerProducts = await db.select().from(products)
+      .where(eq(products.partnerId, partnerId));
+
+    const totalProducts = partnerProducts.length;
+    const totalStock = partnerProducts.reduce((sum, p) => sum + p.currentStock, 0);
+    const totalValue = partnerProducts.reduce((sum, p) => {
+      const cost = parseFloat(p.costPrice || '0');
+      return sum + (cost * p.currentStock);
+    }, 0);
+
+    const lowStockProducts = partnerProducts.filter(p => p.stockStatus === 'low_stock').length;
+    const outOfStockProducts = partnerProducts.filter(p => p.stockStatus === 'out_of_stock').length;
+    const inStockProducts = partnerProducts.filter(p => p.stockStatus === 'in_stock').length;
+
+    return {
+      totalProducts,
+      totalStock,
+      totalValue: totalValue.toFixed(2),
+      inStockProducts,
+      lowStockProducts,
+      outOfStockProducts,
+      stockHealth: totalProducts > 0 ? ((inStockProducts / totalProducts) * 100).toFixed(1) : 0
+    };
+  } catch (error: any) {
+    console.error('Error getting inventory stats:', error);
+    return {
+      totalProducts: 0,
+      totalStock: 0,
+      totalValue: '0',
+      inStockProducts: 0,
+      lowStockProducts: 0,
+      outOfStockProducts: 0,
+      stockHealth: 0
+    };
+  }
+}
+
 // Export storage object for compatibility
 export const storage = {
   createUser,
@@ -775,5 +1316,22 @@ export const storage = {
   setSystemSetting,
   seedSystemSettings,
   createAuditLog,
-  getAdminPermissions
+  getAdminPermissions,
+  // Inventory Management
+  createWarehouse,
+  getAllWarehouses,
+  getWarehouseById,
+  updateProductStock,
+  getStockMovements,
+  getWarehouseStock,
+  createOrder,
+  getOrdersByPartnerId,
+  getAllOrders,
+  getOrderById,
+  getOrderItems,
+  updateOrderStatus,
+  createStockAlert,
+  getStockAlertsByPartnerId,
+  resolveStockAlert,
+  getInventoryStats
 };

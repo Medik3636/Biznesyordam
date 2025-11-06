@@ -14,47 +14,50 @@ config();
 let db: any;
 let isPostgreSQL = false;
 
-// Check if we have a real PostgreSQL DATABASE_URL
-const connectionString = process.env.DATABASE_URL;
-const isProduction = process.env.NODE_ENV === 'production';
+// Initialize database connection
+(async () => {
+  // Check if we have a real PostgreSQL DATABASE_URL
+  const connectionString = process.env.DATABASE_URL;
+  const isProduction = process.env.NODE_ENV === 'production';
 
-// In production, prefer PostgreSQL but allow SQLite fallback
-if (isProduction && (!connectionString || !connectionString.includes('postgresql://'))) {
-  console.warn('⚠️  WARNING: No PostgreSQL DATABASE_URL found in production mode');
-  console.warn('⚠️  Falling back to SQLite (not recommended for production)');
-  console.warn('⚠️  Set DATABASE_URL environment variable to a PostgreSQL connection string for better performance');
-}
+  // In production, prefer PostgreSQL but allow SQLite fallback
+  if (isProduction && (!connectionString || !connectionString.includes('postgresql://'))) {
+    console.warn('⚠️  WARNING: No PostgreSQL DATABASE_URL found in production mode');
+    console.warn('⚠️  Falling back to SQLite (not recommended for production)');
+    console.warn('⚠️  Set DATABASE_URL environment variable to a PostgreSQL connection string for better performance');
+  }
 
-if (connectionString && connectionString.includes('postgresql://') && !connectionString.includes('memory:memory')) {
-  try {
-    // Use PostgreSQL with connection pooling
-    const pool = new Pool({
-      connectionString,
-      ssl: {
-        rejectUnauthorized: false
-      },
-      max: 20,
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
-    });
+  if (connectionString && connectionString.includes('postgresql://') && !connectionString.includes('memory:memory')) {
+    try {
+      // Use PostgreSQL with connection pooling
+      const pool = new Pool({
+        connectionString,
+        ssl: {
+          rejectUnauthorized: false
+        },
+        max: 20,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      });
 
-    // Test connection
-    await pool.query('SELECT 1');
-    db = drizzle(pool, { schema });
-    isPostgreSQL = true;
-    console.log('✅ PostgreSQL database connection established with pg driver');
-  } catch (error) {
-    if (isProduction) {
-      console.error('❌ CRITICAL: PostgreSQL connection failed in production mode');
-      console.error('Error details:', error);
-      throw new Error('Failed to connect to PostgreSQL database in production mode');
+      // Test connection
+      await pool.query('SELECT 1');
+      db = drizzle(pool, { schema });
+      isPostgreSQL = true;
+      console.log('✅ PostgreSQL database connection established with pg driver');
+    } catch (error) {
+      if (isProduction) {
+        console.error('❌ CRITICAL: PostgreSQL connection failed in production mode');
+        console.error('Error details:', error);
+        throw new Error('Failed to connect to PostgreSQL database in production mode');
+      }
+      console.error('PostgreSQL connection failed, falling back to SQLite:', error);
+      await initializeSQLite();
     }
-    console.error('PostgreSQL connection failed, falling back to SQLite:', error);
+  } else {
     await initializeSQLite();
   }
-} else {
-  await initializeSQLite();
-}
+})();
 
 async function initializeSQLite() {
   console.log('🔧 Initializing SQLite database...');

@@ -743,6 +743,281 @@ export function registerRoutes(app: express.Application): Server {
     }
   }));
 
+  // ==================== INVENTORY MANAGEMENT ROUTES ====================
+
+  // Warehouse routes
+  app.get("/api/warehouses", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    const warehouses = await storage.getAllWarehouses();
+    res.json(warehouses);
+  }));
+
+  app.post("/api/warehouses", requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+    const warehouse = await storage.createWarehouse(req.body);
+    
+    await storage.createAuditLog({
+      userId: req.session!.user!.id,
+      action: 'WAREHOUSE_CREATED',
+      entityType: 'warehouse',
+      entityId: warehouse.id,
+      payload: { name: warehouse.name, code: warehouse.code }
+    });
+
+    res.status(201).json(warehouse);
+  }));
+
+  app.get("/api/warehouses/:id/stock", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const stock = await storage.getWarehouseStock(id);
+    res.json(stock);
+  }));
+
+  // Stock management routes
+  app.post("/api/stock/update", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    const { 
+      productId, 
+      warehouseId, 
+      quantity, 
+      movementType, 
+      reason, 
+      referenceType, 
+      referenceId, 
+      notes 
+    } = req.body;
+
+    if (!productId || !warehouseId || quantity === undefined || !movementType || !reason) {
+      return res.status(400).json({
+        message: "Barcha majburiy maydonlar to'ldirilishi kerak",
+        code: "MISSING_FIELDS"
+      });
+    }
+
+    const result = await storage.updateProductStock(
+      productId,
+      warehouseId,
+      quantity,
+      movementType,
+      reason,
+      req.session!.user!.id,
+      referenceType,
+      referenceId,
+      notes
+    );
+
+    await storage.createAuditLog({
+      userId: req.session!.user!.id,
+      action: 'STOCK_UPDATED',
+      entityType: 'product',
+      entityId: productId,
+      payload: { 
+        movementType, 
+        quantity, 
+        previousStock: result.movement.previousStock,
+        newStock: result.movement.newStock
+      }
+    });
+
+    res.json({
+      success: true,
+      product: result.product,
+      movement: result.movement,
+      message: "Stock muvaffaqiyatli yangilandi"
+    });
+  }));
+
+  app.get("/api/stock/movements", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    const { productId, warehouseId, movementType, startDate, endDate } = req.query;
+
+    const movements = await storage.getStockMovements({
+      productId: productId as string,
+      warehouseId: warehouseId as string,
+      movementType: movementType as string,
+      startDate: startDate ? new Date(startDate as string) : undefined,
+      endDate: endDate ? new Date(endDate as string) : undefined
+    });
+
+    res.json(movements);
+  }));
+
+  // Order management routes
+  app.get("/api/orders", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    if (req.session!.user!.role === 'admin') {
+      const orders = await storage.getAllOrders();
+      res.json(orders);
+    } else {
+      const partner = await storage.getPartnerByUserId(req.session!.user!.id);
+      if (!partner) {
+        return res.status(404).json({ 
+          message: "Hamkor ma'lumotlari topilmadi",
+          code: "PARTNER_NOT_FOUND"
+        });
+      }
+
+      const orders = await storage.getOrdersByPartnerId(partner.id);
+      res.json(orders);
+    }
+  }));
+
+  app.post("/api/orders", requirePartner, asyncHandler(async (req: Request, res: Response) => {
+    const partner = await storage.getPartnerByUserId(req.session!.user!.id);
+    if (!partner) {
+      return res.status(404).json({ 
+        message: "Hamkor ma'lumotlari topilmadi",
+        code: "PARTNER_NOT_FOUND"
+      });
+    }
+
+    const orderData = {
+      ...req.body,
+      partnerId: partner.id
+    };
+
+    const order = await storage.createOrder(orderData);
+
+    await storage.createAuditLog({
+      userId: req.session!.user!.id,
+      action: 'ORDER_CREATED',
+      entityType: 'order',
+      entityId: order.id,
+      payload: { orderNumber: order.orderNumber, totalAmount: order.totalAmount }
+    });
+
+    res.status(201).json(order);
+  }));
+
+  app.get("/api/orders/:id", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const order = await storage.getOrderById(id);
+
+    if (!order) {
+      return res.status(404).json({ 
+        message: "Buyurtma topilmadi",
+        code: "ORDER_NOT_FOUND"
+      });
+    }
+
+    // Check authorization
+    if (req.session!.user!.role !== 'admin') {
+      const partner = await storage.getPartnerByUserId(req.session!.user!.id);
+      if (!partner || order.partnerId !== partner.id) {
+        return res.status(403).json({ 
+          message: "Ruxsat yo'q",
+          code: "FORBIDDEN"
+        });
+      }
+    }
+
+    const items = await storage.getOrderItems(id);
+    res.json({ ...order, items });
+  }));
+
+  app.put("/api/orders/:id/status", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { status, fulfillmentStatus, paymentStatus } = req.body;
+
+    const order = await storage.updateOrderStatus(
+      id,
+      status,
+      fulfillmentStatus,
+      paymentStatus,
+      req.session!.user!.id
+    );
+
+    if (!order) {
+      return res.status(404).json({ 
+        message: "Buyurtma topilmadi",
+        code: "ORDER_NOT_FOUND"
+      });
+    }
+
+    await storage.createAuditLog({
+      userId: req.session!.user!.id,
+      action: 'ORDER_STATUS_UPDATED',
+      entityType: 'order',
+      entityId: id,
+      payload: { status, fulfillmentStatus, paymentStatus }
+    });
+
+    // Send notification via WebSocket
+    const wsManager = (global as any).wsManager;
+    if (wsManager) {
+      const partner = await storage.getPartnerById(order.partnerId);
+      if (partner) {
+        wsManager.sendToUser(partner.userId, {
+          type: 'notification',
+          data: {
+            type: 'order_update',
+            title: 'Buyurtma holati yangilandi',
+            message: `Buyurtma #${order.orderNumber} holati: ${status}`,
+            orderId: order.id,
+            timestamp: Date.now()
+          }
+        });
+      }
+    }
+
+    res.json(order);
+  }));
+
+  // Stock alerts routes
+  app.get("/api/stock-alerts", requirePartner, asyncHandler(async (req: Request, res: Response) => {
+    const partner = await storage.getPartnerByUserId(req.session!.user!.id);
+    if (!partner) {
+      return res.status(404).json({ 
+        message: "Hamkor ma'lumotlari topilmadi",
+        code: "PARTNER_NOT_FOUND"
+      });
+    }
+
+    const includeResolved = req.query.includeResolved === 'true';
+    const alerts = await storage.getStockAlertsByPartnerId(partner.id, includeResolved);
+    res.json(alerts);
+  }));
+
+  app.put("/api/stock-alerts/:id/resolve", requireAuth, asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    const alert = await storage.resolveStockAlert(id, req.session!.user!.id);
+
+    if (!alert) {
+      return res.status(404).json({ 
+        message: "Ogohlantirish topilmadi",
+        code: "ALERT_NOT_FOUND"
+      });
+    }
+
+    res.json(alert);
+  }));
+
+  // Inventory statistics
+  app.get("/api/inventory/stats", requirePartner, asyncHandler(async (req: Request, res: Response) => {
+    const partner = await storage.getPartnerByUserId(req.session!.user!.id);
+    if (!partner) {
+      return res.status(404).json({ 
+        message: "Hamkor ma'lumotlari topilmadi",
+        code: "PARTNER_NOT_FOUND"
+      });
+    }
+
+    const stats = await storage.getInventoryStats(partner.id);
+    res.json(stats);
+  }));
+
+  // Admin inventory overview
+  app.get("/api/admin/inventory/overview", requireAdmin, asyncHandler(async (req: Request, res: Response) => {
+    const partners = await storage.getAllPartners();
+    const overview = await Promise.all(
+      partners.map(async (partner) => {
+        const stats = await storage.getInventoryStats(partner.id);
+        return {
+          partnerId: partner.id,
+          businessName: partner.businessName,
+          ...stats
+        };
+      })
+    );
+
+    res.json(overview);
+  }));
+
   // Error handling middleware
   app.use(handleValidationError);
 

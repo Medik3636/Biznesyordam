@@ -17,6 +17,11 @@ import { z } from "zod";
 export const userRoleEnum = pgEnum('user_role', ['customer', 'partner', 'admin']);
 export const marketplaceEnum = pgEnum('marketplace', ['uzum', 'wildberries', 'yandex', 'ozon']);
 export const categoryEnum = pgEnum('category', ['electronics', 'clothing', 'home', 'sports', 'beauty']);
+export const stockStatusEnum = pgEnum('stock_status', ['in_stock', 'low_stock', 'out_of_stock', 'discontinued']);
+export const movementTypeEnum = pgEnum('movement_type', ['inbound', 'outbound', 'transfer', 'adjustment', 'return']);
+export const orderStatusEnum = pgEnum('order_status', ['pending', 'confirmed', 'picking', 'packed', 'shipped', 'delivered', 'cancelled', 'returned']);
+export const paymentStatusEnum = pgEnum('payment_status', ['pending', 'paid', 'refunded', 'failed']);
+export const fulfillmentStatusEnum = pgEnum('fulfillment_status', ['pending', 'processing', 'ready', 'shipped', 'completed']);
 
 // Session storage table (required for authentication)
 export const sessions = pgTable(
@@ -118,7 +123,7 @@ export const pricingTiers = pgTable("pricing_tiers", {
   createdAt: timestamp("created_at").default(sql`now()`),
 });
 
-// Products
+// Products with inventory tracking
 export const products = pgTable("products", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   partnerId: varchar("partner_id").notNull().references(() => partners.id),
@@ -127,14 +132,30 @@ export const products = pgTable("products", {
   description: text("description"),
   price: decimal("price").notNull(),
   costPrice: decimal("cost_price"),
-  sku: varchar("sku"),
+  sku: varchar("sku").unique(),
   barcode: varchar("barcode"),
   weight: decimal("weight"),
   dimensions: text("dimensions"), // JSON as text {length, width, height}
   images: text("images").default('[]'), // JSON array as text
+  
+  // Inventory Management Fields
+  currentStock: integer("current_stock").notNull().default(0),
+  reservedStock: integer("reserved_stock").notNull().default(0),
+  availableStock: integer("available_stock").notNull().default(0),
+  minStockLevel: integer("min_stock_level").default(10),
+  maxStockLevel: integer("max_stock_level").default(1000),
+  reorderQuantity: integer("reorder_quantity").default(50),
+  stockStatus: stockStatusEnum("stock_status").notNull().default('out_of_stock'),
+  
+  // Additional product info
+  manufacturer: varchar("manufacturer"),
+  brand: varchar("brand"),
+  model: varchar("model"),
+  
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").default(sql`now()`),
   updatedAt: timestamp("updated_at").default(sql`now()`),
+  lastStockUpdate: timestamp("last_stock_update").default(sql`now()`),
 });
 
 // Marketplace integrations
@@ -602,3 +623,238 @@ export type ProfitBreakdown = typeof profitBreakdown.$inferSelect;
 export type TrendingProduct = typeof trendingProducts.$inferSelect;
 export type AuditLog = typeof auditLogs.$inferSelect;
 export type AdminPermission = typeof adminPermissions.$inferSelect;
+
+// ==================== INVENTORY MANAGEMENT SYSTEM ====================
+
+// Warehouses
+export const warehouses = pgTable("warehouses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name").notNull(),
+  code: varchar("code").notNull().unique(),
+  address: text("address").notNull(),
+  city: varchar("city").notNull(),
+  region: varchar("region"),
+  capacity: integer("capacity").notNull().default(10000),
+  currentUtilization: decimal("current_utilization").default('0'),
+  isActive: boolean("is_active").notNull().default(true),
+  managerId: varchar("manager_id").references(() => users.id),
+  contactPhone: varchar("contact_phone"),
+  operatingHours: text("operating_hours"), // JSON
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
+// Warehouse Stock (product quantities per warehouse)
+export const warehouseStock = pgTable("warehouse_stock", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  warehouseId: varchar("warehouse_id").notNull().references(() => warehouses.id),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  quantity: integer("quantity").notNull().default(0),
+  reservedQuantity: integer("reserved_quantity").notNull().default(0),
+  availableQuantity: integer("available_quantity").notNull().default(0),
+  location: varchar("location"), // e.g., "A-12-3" (aisle-rack-shelf)
+  lastCounted: timestamp("last_counted"),
+  lastMovement: timestamp("last_movement").default(sql`now()`),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
+// Stock Movements (complete audit trail)
+export const stockMovements = pgTable("stock_movements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  warehouseId: varchar("warehouse_id").notNull().references(() => warehouses.id),
+  movementType: movementTypeEnum("movement_type").notNull(),
+  quantity: integer("quantity").notNull(),
+  previousStock: integer("previous_stock").notNull(),
+  newStock: integer("new_stock").notNull(),
+  reason: varchar("reason").notNull(),
+  referenceType: varchar("reference_type"), // 'purchase_order', 'sale_order', 'transfer', 'adjustment'
+  referenceId: varchar("reference_id"),
+  performedBy: varchar("performed_by").notNull().references(() => users.id),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+// Orders (complete order management)
+export const orders = pgTable("orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderNumber: varchar("order_number").notNull().unique(),
+  partnerId: varchar("partner_id").notNull().references(() => partners.id),
+  customerId: varchar("customer_id"),
+  customerName: varchar("customer_name"),
+  customerPhone: varchar("customer_phone"),
+  customerEmail: varchar("customer_email"),
+  
+  // Marketplace info
+  marketplace: marketplaceEnum("marketplace").notNull(),
+  marketplaceOrderId: varchar("marketplace_order_id"),
+  
+  // Status tracking
+  orderDate: timestamp("order_date").notNull().default(sql`now()`),
+  status: orderStatusEnum("status").notNull().default('pending'),
+  paymentStatus: paymentStatusEnum("payment_status").notNull().default('pending'),
+  fulfillmentStatus: fulfillmentStatusEnum("fulfillment_status").notNull().default('pending'),
+  
+  // Financial
+  subtotal: decimal("subtotal").notNull().default('0'),
+  shippingCost: decimal("shipping_cost").default('0'),
+  tax: decimal("tax").default('0'),
+  marketplaceCommission: decimal("marketplace_commission").default('0'),
+  fulfillmentFee: decimal("fulfillment_fee").default('0'),
+  totalAmount: decimal("total_amount").notNull().default('0'),
+  
+  // Shipping
+  shippingAddress: text("shipping_address"), // JSON
+  shippingMethod: varchar("shipping_method"),
+  trackingNumber: varchar("tracking_number"),
+  estimatedDelivery: timestamp("estimated_delivery"),
+  actualDelivery: timestamp("actual_delivery"),
+  
+  // Warehouse operations
+  warehouseId: varchar("warehouse_id").references(() => warehouses.id),
+  pickedBy: varchar("picked_by").references(() => users.id),
+  packedBy: varchar("packed_by").references(() => users.id),
+  pickedAt: timestamp("picked_at"),
+  packedAt: timestamp("packed_at"),
+  shippedAt: timestamp("shipped_at"),
+  
+  notes: text("notes"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
+// Order Items
+export const orderItems = pgTable("order_items", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull().references(() => orders.id),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  productName: varchar("product_name").notNull(),
+  sku: varchar("sku"),
+  quantity: integer("quantity").notNull(),
+  unitPrice: decimal("unit_price").notNull(),
+  discount: decimal("discount").default('0'),
+  tax: decimal("tax").default('0'),
+  totalPrice: decimal("total_price").notNull(),
+  status: varchar("status").default('pending'), // 'pending', 'picked', 'packed', 'shipped'
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+// Customers (end customers who buy from marketplaces)
+export const customers = pgTable("customers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
+  email: varchar("email"),
+  phone: varchar("phone").notNull(),
+  
+  // Purchase history
+  totalOrders: integer("total_orders").default(0),
+  totalSpent: decimal("total_spent").default('0'),
+  averageOrderValue: decimal("average_order_value").default('0'),
+  lastOrderDate: timestamp("last_order_date"),
+  
+  // Segmentation
+  customerSegment: varchar("customer_segment").default('new'), // 'new', 'regular', 'vip', 'at_risk'
+  lifetimeValue: decimal("lifetime_value").default('0'),
+  
+  // Addresses
+  defaultShippingAddress: text("default_shipping_address"), // JSON
+  billingAddress: text("billing_address"), // JSON
+  
+  createdAt: timestamp("created_at").default(sql`now()`),
+  updatedAt: timestamp("updated_at").default(sql`now()`),
+});
+
+// Stock Alerts
+export const stockAlerts = pgTable("stock_alerts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: varchar("product_id").notNull().references(() => products.id),
+  partnerId: varchar("partner_id").notNull().references(() => partners.id),
+  alertType: varchar("alert_type").notNull(), // 'low_stock', 'out_of_stock', 'overstock', 'expiry_warning'
+  severity: varchar("severity").notNull().default('medium'), // 'low', 'medium', 'high', 'critical'
+  message: text("message").notNull(),
+  currentStock: integer("current_stock"),
+  threshold: integer("threshold"),
+  isResolved: boolean("is_resolved").notNull().default(false),
+  resolvedAt: timestamp("resolved_at"),
+  resolvedBy: varchar("resolved_by").references(() => users.id),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+// Inventory Reports
+export const inventoryReports = pgTable("inventory_reports", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportType: varchar("report_type").notNull(), // 'valuation', 'movement', 'turnover', 'accuracy'
+  partnerId: varchar("partner_id").references(() => partners.id),
+  warehouseId: varchar("warehouse_id").references(() => warehouses.id),
+  periodStart: timestamp("period_start").notNull(),
+  periodEnd: timestamp("period_end").notNull(),
+  reportData: text("report_data").notNull(), // JSON with report metrics
+  generatedBy: varchar("generated_by").notNull().references(() => users.id),
+  fileUrl: varchar("file_url"),
+  createdAt: timestamp("created_at").default(sql`now()`),
+});
+
+// Zod schemas for new tables
+export const insertWarehouseSchema = createInsertSchema(warehouses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWarehouseStockSchema = createInsertSchema(warehouseStock).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStockMovementSchema = createInsertSchema(stockMovements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOrderSchema = createInsertSchema(orders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOrderItemSchema = createInsertSchema(orderItems).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertCustomerSchema = createInsertSchema(customers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStockAlertSchema = createInsertSchema(stockAlerts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInventoryReportSchema = createInsertSchema(inventoryReports).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Type exports
+export type Warehouse = typeof warehouses.$inferSelect;
+export type InsertWarehouse = z.infer<typeof insertWarehouseSchema>;
+export type WarehouseStock = typeof warehouseStock.$inferSelect;
+export type InsertWarehouseStock = z.infer<typeof insertWarehouseStockSchema>;
+export type StockMovement = typeof stockMovements.$inferSelect;
+export type InsertStockMovement = z.infer<typeof insertStockMovementSchema>;
+export type Order = typeof orders.$inferSelect;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type OrderItem = typeof orderItems.$inferSelect;
+export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type Customer = typeof customers.$inferSelect;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type StockAlert = typeof stockAlerts.$inferSelect;
+export type InsertStockAlert = z.infer<typeof insertStockAlertSchema>;
+export type InventoryReport = typeof inventoryReports.$inferSelect;
+export type InsertInventoryReport = z.infer<typeof insertInventoryReportSchema>;
