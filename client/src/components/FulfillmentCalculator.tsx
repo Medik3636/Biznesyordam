@@ -27,44 +27,52 @@ interface FulfillmentCalculatorProps {
   className?: string;
 }
 
-// Haqiqiy Fulfillment model - 4-darajali pricing
+// YANGI Fulfillment model - v3.0.0 (6-Nov-2025)
+// Komissiya endi SAVDODAN olinadi (oldin foyda edi)
 const FULFILLMENT_TIERS = {
   starter_pro: {
     name: "Starter Pro",
-    fixedPayment: 0, // Risksiz tarif - 0 so'm
-    commissionRanges: [
-      { min: 0, max: 10000000, rate: 45 }, // 45% - 0-10M
-      { min: 10000000, max: 50000000, rate: 35 }, // 35% - 10M-50M
-      { min: 50000000, max: Infinity, rate: 30 } // 30% - 50M+
-    ]
+    monthlyFee: 2500000, // YANGI: 2.5M oylik to'lov
+    commissionRate: 25, // YANGI: 25% savdodan (fixed)
+    description: "Yangi boshlovchilar uchun",
+    limits: {
+      marketplaces: 1,
+      products: 100,
+      warehouseKg: 100
+    }
   },
   business_standard: {
     name: "Business Standard", 
-    fixedPayment: 4500000, // 4.5M som
-    commissionRanges: [
-      { min: 0, max: 20000000, rate: 25 }, // 25% - 0-20M
-      { min: 20000000, max: 100000000, rate: 20 }, // 20% - 20M-100M  
-      { min: 100000000, max: Infinity, rate: 18 } // 18% - 100M+
-    ]
+    monthlyFee: 5000000, // YANGI: 5M oylik to'lov
+    commissionRate: 20, // YANGI: 20% savdodan (fixed)
+    description: "O'sib borayotgan bizneslar uchun",
+    limits: {
+      marketplaces: 2,
+      products: 500,
+      warehouseKg: 500
+    }
   },
   professional_plus: {
     name: "Professional Plus",
-    fixedPayment: 8500000, // 8.5M som
-    commissionRanges: [
-      { min: 0, max: 50000000, rate: 20 }, // 20% - 0-50M
-      { min: 50000000, max: 200000000, rate: 17 }, // 17% - 50M-200M
-      { min: 200000000, max: Infinity, rate: 15 } // 15% - 200M+
-    ]
+    monthlyFee: 10000000, // YANGI: 10M oylik to'lov
+    commissionRate: 15, // YANGI: 15% savdodan (fixed)
+    description: "Katta bizneslar uchun",
+    limits: {
+      marketplaces: 4,
+      products: 2000,
+      warehouseKg: 2000
+    }
   },
   enterprise_elite: {
     name: "Enterprise Elite",
-    fixedPayment: null, // Individual
-    isCustomPricing: true,
-    commissionRanges: [
-      { min: 0, max: 100000000, rate: 18 }, // 18% - 0-100M
-      { min: 100000000, max: 500000000, rate: 15 }, // 15% - 100M-500M
-      { min: 500000000, max: Infinity, rate: 12 } // 12% - 500M+
-    ]
+    monthlyFee: 20000000, // YANGI: 20M oylik to'lov
+    commissionRate: 10, // YANGI: 10% savdodan (fixed)
+    description: "Yirik kompaniyalar uchun",
+    limits: {
+      marketplaces: 999,
+      products: 999999,
+      warehouseKg: 999999
+    }
   }
 };
 
@@ -147,32 +155,24 @@ export function FulfillmentCalculator({ className }: FulfillmentCalculatorProps)
     const sptCost = 2000 * quantity; // SPT harajati har bir mahsulot uchun 2000 som
     const tax = sales * 0.03; // 3% soliq sotuv narxidan
     
-    // Sof foyda = Sotish - Xarid - SPT - Marketpleys komissiya - Logistika - Soliq
+    // YANGI MODEL: Komissiya savdodan (oldin foyda edi)
+    const commissionRate = tierConfig.commissionRate; // Fixed rate
+    const commissionAmount = (sales * commissionRate) / 100; // Savdodan
+    
+    // YANGI: Oylik to'lov (prorated for calculation)
+    const monthlyFee = tierConfig.monthlyFee;
+    
+    // Jami fulfillment haqi = Oylik to'lov + savdodan komissiya
+    const totalFulfillmentFee = monthlyFee + commissionAmount;
+    
+    // Hamkor foyda = Sotish - Xarid - SPT - Marketpleys komissiya - Logistika - Soliq - Fulfillment haqi
     const netProfit = sales - cost - sptCost - marketpleysCommission - logisticsFee - tax;
-    
-    // Fulfillment komissiyasi sof foydadan
-    let commissionRate = 0;
-    let commissionAmount = 0;
-    
-    if (netProfit > 0) {
-      // Sof foyda bo'yicha tegishli tarif aniqlanadi
-      const range = tierConfig.commissionRanges.find(r => netProfit >= r.min && netProfit < r.max);
-      if (range) {
-        commissionRate = range.rate;
-        commissionAmount = (netProfit * commissionRate) / 100;
-      }
-    }
-    
-    // Jami fulfillment haqi = Fixed to'lov + sof foydadan komissiya
-    const totalFulfillmentFee = (tierConfig.fixedPayment || 0) + commissionAmount;
-    
-    // Hamkor foyda = Sof foyda - Fulfillment haqi
     const partnerProfit = netProfit - totalFulfillmentFee;
     const profitPercentage = sales > 0 ? (partnerProfit / sales) * 100 : 0;
 
     return {
       tierName: tierConfig.name,
-      fixedPayment: tierConfig.fixedPayment || 0,
+      fixedPayment: monthlyFee,
       commissionRate,
       marketpleysCommissionRate,
       commissionAmount,

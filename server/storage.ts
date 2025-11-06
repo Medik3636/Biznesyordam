@@ -154,7 +154,7 @@ export async function createPartner(partnerData: {
       businessCategory: partnerData.businessCategory as any,
       monthlyRevenue: partnerData.monthlyRevenue,
       pricingTier: partnerData.pricingTier || 'starter_pro',
-      commissionRate: '0.30',
+      commissionRate: '0.25', // YANGI: 25% savdodan (Starter Pro)
       isApproved: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -688,7 +688,7 @@ export async function seedSystemSettings(adminId: string): Promise<void> {
     const defaultSettings = [
       {
         settingKey: 'platform_commission_rate',
-        settingValue: '0.15',
+        settingValue: '0.10', // YANGI: 10% minimum (Enterprise Elite)
         settingType: 'number',
         category: 'commission',
         description: 'Default platform commission rate',

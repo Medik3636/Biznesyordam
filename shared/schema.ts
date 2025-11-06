@@ -82,7 +82,7 @@ export const partners = pgTable("partners", {
   businessCategory: categoryEnum("business_category").notNull(),
   monthlyRevenue: decimal("monthly_revenue"),
   pricingTier: varchar("pricing_tier").notNull().default('starter_pro'),
-  commissionRate: decimal("commission_rate").notNull().default('0.30'),
+  commissionRate: decimal("commission_rate").notNull().default('0.25'), // YANGI: 25% savdodan (Starter Pro default)
   isApproved: boolean("is_approved").notNull().default(false),
   approvedAt: timestamp("approved_at"),
   approvedBy: varchar("approved_by").references(() => users.id),

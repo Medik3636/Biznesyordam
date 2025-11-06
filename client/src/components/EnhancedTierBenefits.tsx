@@ -3,24 +3,33 @@ import { Badge } from '@/components/ui/badge';
 import { TrendingUp, DollarSign, Zap, Clock, Target, Award } from 'lucide-react';
 
 interface TierBenefitsProps {
-  currentCommission: number;
-  newCommission: number;
-  monthlyRevenue?: number;
-  tierCost: number;
+  currentCommission: number; // Hozirgi komissiya (foizda, masalan 0.25 = 25%)
+  newCommission: number; // Yangi komissiya (foizda)
+  monthlyRevenue?: number; // Oylik aylanma
+  tierCost: number; // Yangi tarifning oylik to'lovi
+  currentMonthlyFee?: number; // Hozirgi tarifning oylik to'lovi (default 0)
 }
 
 export function EnhancedTierBenefits({ 
   currentCommission, 
   newCommission, 
   monthlyRevenue = 50000000,
-  tierCost 
+  tierCost,
+  currentMonthlyFee = 0
 }: TierBenefitsProps) {
+  // YANGI MODEL: Komissiya savdodan
   const commissionDiff = currentCommission - newCommission;
-  const monthlySavings = monthlyRevenue * commissionDiff;
+  const commissionSavings = monthlyRevenue * commissionDiff; // Komissiyadan tejash
+  
+  // Oylik to'lov farqi
+  const monthlyFeeDiff = tierCost - currentMonthlyFee; // Qo'shimcha oylik to'lov
+  
+  // Umumiy tejamkorlik = Komissiyadan tejash - Qo'shimcha oylik to'lov
+  const monthlySavings = commissionSavings - monthlyFeeDiff;
   const yearlySavings = monthlySavings * 12;
-  const netMonthlySavings = monthlySavings - tierCost;
-  const roi = tierCost > 0 ? ((netMonthlySavings / tierCost) * 100) : 0;
-  const breakEvenDays = tierCost > 0 ? Math.ceil((tierCost / monthlySavings) * 30) : 0;
+  const netMonthlySavings = monthlySavings; // Allaqachon tierCost hisobga olingan
+  const roi = tierCost > 0 ? ((monthlySavings / tierCost) * 100) : 0;
+  const breakEvenDays = monthlySavings > 0 ? Math.ceil((monthlyFeeDiff / monthlySavings) * 30) : 0;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('uz-UZ', {
@@ -34,25 +43,25 @@ export function EnhancedTierBenefits({
       icon: TrendingUp,
       label: 'Komissiya tejash',
       value: `${(commissionDiff * 100).toFixed(1)}%`,
-      description: 'Har bir savdoda',
+      description: 'Savdodan komissiya kamayishi',
       color: 'text-green-600',
       bgColor: 'bg-green-50'
     },
     {
       icon: DollarSign,
-      label: 'Oylik tejamkorlik',
-      value: formatCurrency(monthlySavings),
-      description: `Yillik: ${formatCurrency(yearlySavings)}`,
+      label: 'Komissiyadan tejash',
+      value: formatCurrency(commissionSavings),
+      description: 'Oylik savdo komissiyasidan',
       color: 'text-blue-600',
       bgColor: 'bg-blue-50'
     },
     {
       icon: Target,
-      label: 'Sof foyda',
-      value: formatCurrency(netMonthlySavings),
-      description: 'Oylik (tarif to\'lovidan keyin)',
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50'
+      label: 'Sof tejamkorlik',
+      value: formatCurrency(monthlySavings),
+      description: `Oylik to'lovdan keyin (${formatCurrency(monthlyFeeDiff)} to'lov)`,
+      color: monthlySavings > 0 ? 'text-purple-600' : 'text-red-600',
+      bgColor: monthlySavings > 0 ? 'bg-purple-50' : 'bg-red-50'
     },
     {
       icon: Zap,
@@ -65,7 +74,7 @@ export function EnhancedTierBenefits({
     {
       icon: Clock,
       label: 'Break-even',
-      value: `${breakEvenDays} kun`,
+      value: breakEvenDays > 0 ? `${breakEvenDays} kun` : 'Darhol',
       description: 'Investitsiya qaytish muddati',
       color: 'text-indigo-600',
       bgColor: 'bg-indigo-50'
@@ -73,7 +82,7 @@ export function EnhancedTierBenefits({
     {
       icon: Award,
       label: 'Yillik foyda',
-      value: formatCurrency(yearlySavings - (tierCost * 12)),
+      value: formatCurrency(yearlySavings),
       description: 'Umumiy tejamkorlik',
       color: 'text-rose-600',
       bgColor: 'bg-rose-50'

@@ -92,7 +92,7 @@ async function seedData() {
         businessCategory: "electronics",
         monthlyRevenue: "25000000",
         pricingTier: "business_standard",
-        commissionRate: "0.20",
+        commissionRate: "0.20", // YANGI: 20% savdodan (oldin foyda edi)
         isApproved: true,
         approvedBy: admin.id,
         approvedAt: new Date(),
@@ -137,70 +137,96 @@ async function seedData() {
     const existingTiers = await db.select().from(pricingTiers);
     
     if (existingTiers.length === 0) {
-      // Create pricing tiers - ORIGINAL/CORRECT TIERS
+      // Create pricing tiers - NEW PRICING MODEL (v3.0.0)
+      // Updated: 6-Nov-2025
+      // Commission now from REVENUE, not profit
       const pricingTiersData = [
       {
         tier: "starter_pro",
         nameUz: "Starter Pro",
-        fixedCost: "0",
-        commissionMin: "0.30",
-        commissionMax: "0.45",
-        minRevenue: "0",
-        maxRevenue: "50000000",
+        fixedCost: "2500000", // YANGI: 2.5M oylik to'lov
+        commissionMin: "0.25", // YANGI: 25% savdodan
+        commissionMax: "0.25",
+        minRevenue: "10000000", // 10M
+        maxRevenue: "30000000", // 30M
         features: JSON.stringify([
-          "45-30% komissiya",
-          "50 mahsulotgacha",
-          "Asosiy analytics",
-          "Email qo'llab-quvvatlash",
-          "Risksiz tarif"
+          "Oylik to'lov: 2,500,000 so'm",
+          "Komissiya: 25% (savdodan)",
+          "1 ta marketplace",
+          "100 tagacha mahsulot",
+          "Basic dashboard",
+          "Ombor xizmati (100 kg)",
+          "Email yordam (48 soat)",
+          "Asosiy CRM"
         ]),
       },
       {
         tier: "business_standard",
         nameUz: "Business Standard",
-        fixedCost: "4500000",
-        commissionMin: "0.18",
-        commissionMax: "0.25",
-        minRevenue: "10000000",
-        maxRevenue: "200000000",
+        fixedCost: "5000000", // YANGI: 5M oylik to'lov
+        commissionMin: "0.20", // YANGI: 20% savdodan
+        commissionMax: "0.20",
+        minRevenue: "30000000", // 30M
+        maxRevenue: "100000000", // 100M
         features: JSON.stringify([
-          "25-18% komissiya",
-          "Cheksiz mahsulot",
-          "Kengaytirilgan analytics",
-          "Dedicated manager",
-          "Sof Foyda Dashboard",
-          "Trend Hunter"
+          "Oylik to'lov: 5,000,000 so'm",
+          "Komissiya: 20% (savdodan)",
+          "2 ta marketplace",
+          "500 tagacha mahsulot",
+          "To'liq dashboard",
+          "Foyda/zarar tahlili",
+          "Ombor xizmati (500 kg)",
+          "Telefon yordam (24 soat)",
+          "To'liq CRM",
+          "Asosiy marketing",
+          "Oylik konsultatsiya (2 soat)"
         ]),
       },
       {
         tier: "professional_plus",
         nameUz: "Professional Plus",
-        fixedCost: "8500000",
-        commissionMin: "0.15",
-        commissionMax: "0.20",
-        minRevenue: "50000000",
-        maxRevenue: "500000000",
+        fixedCost: "10000000", // YANGI: 10M oylik to'lov
+        commissionMin: "0.15", // YANGI: 15% savdodan
+        commissionMax: "0.15",
+        minRevenue: "100000000", // 100M
+        maxRevenue: "300000000", // 300M
         features: JSON.stringify([
-          "20-15% komissiya",
-          "Premium fulfillment",
-          "Barcha marketplace",
-          "24/7 qo'llab-quvvatlash",
-          "Custom analytics",
-          "Marketing va PR qo'llab-quvvatlash",
-          "Fotosurat va video xizmatlari"
+          "Oylik to'lov: 10,000,000 so'm",
+          "Komissiya: 15% (savdodan)",
+          "4 ta marketplace",
+          "2,000 tagacha mahsulot",
+          "Premium dashboard",
+          "AI-powered tahlil",
+          "Trend hunter",
+          "Shaxsiy menejer",
+          "24/7 yordam (1 soat)",
+          "Ombor xizmati (2,000 kg)",
+          "Premium CRM",
+          "To'liq marketing",
+          "Haftalik konsultatsiya (4 soat/oy)"
         ]),
       },
       {
         tier: "enterprise_elite",
         nameUz: "Enterprise Elite",
-        fixedCost: "0", // Kelishuv asosida
-        commissionMin: "0.12",
-        commissionMax: "0.18",
-        minRevenue: "100000000",
-        maxRevenue: null,
+        fixedCost: "20000000", // YANGI: 20M oylik to'lov
+        commissionMin: "0.10", // YANGI: 10% savdodan
+        commissionMax: "0.10",
+        minRevenue: "300000000", // 300M
+        maxRevenue: null, // Cheksiz
         features: JSON.stringify([
-          "18-12% komissiya",
-          "VIP fulfillment xizmat",
+          "Oylik to'lov: 20,000,000 so'm",
+          "Komissiya: 10% (savdodan)",
+          "Barcha marketplace'lar",
+          "Cheksiz mahsulot",
+          "Enterprise dashboard",
+          "Maxsus AI tahlil",
+          "Shaxsiy jamoa (3-5 kishi)",
+          "24/7 VIP yordam (30 daqiqa)",
+          "Cheksiz ombor",
+          "Enterprise CRM",
+          "To'liq marketing va branding",
+          "Kunlik konsultatsiya (20 soat/oy)",
           "Maxsus integratsiyalar",
           "Shaxsiy manager",
           "Kelishuv asosida narx",
@@ -270,7 +296,7 @@ async function seedData() {
           partnerId: partner.id,
           category: "electronics",
           marketplace: "uzum",
-          commissionRate: "0.20",
+          commissionRate: "0.20", // YANGI: 20% savdodan (oldin foyda edi)
           createdBy: admin.id,
           isActive: true,
         },
