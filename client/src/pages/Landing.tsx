@@ -341,54 +341,64 @@ export default function Landing() {
               {pricingTiers.map((tier, index) => (
                 <Card 
                   key={index}
-                  className={`relative hover-lift animate-slide-up ${
+                  className={`relative hover-lift animate-slide-up flex flex-col ${
                     tier.popular 
-                      ? 'border-2 border-primary shadow-business scale-105' 
+                      ? 'border-2 border-primary shadow-business lg:scale-105' 
                       : 'border border-border shadow-elegant'
                   }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   {tier.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <Badge className="bg-primary text-primary-foreground px-4 py-1">
+                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
+                      <Badge className="bg-primary text-primary-foreground px-4 py-1 shadow-lg">
+                        <Crown className="w-3 h-3 mr-1 inline" />
                         Tavsiya etiladi
                       </Badge>
                     </div>
                   )}
                   
-                  <CardHeader className="text-center">
-                    <CardTitle className="text-xl font-bold text-foreground mb-2">{tier.name}</CardTitle>
-                    <p className="text-muted-foreground mb-6">{tier.description}</p>
-                    <div className="text-4xl font-bold text-primary mb-2">
-                      {tier.price === "0" ? "Bepul" : tier.price === "Individual" ? "Individual" : `${tier.price} so'm`}
+                  <CardHeader className="text-center pb-6">
+                    <CardTitle className="text-2xl font-bold text-foreground mb-2">{tier.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground mb-6">{tier.description}</p>
+                    <div className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-2">
+                      {tier.price === "0" ? "Bepul" : tier.price === "Individual" ? "Individual" : `${tier.price}`}
                     </div>
-                    <div className="text-muted-foreground">
-                      {tier.price !== "Individual" && "Oylik to'lov"}
-                    </div>
+                    {tier.price !== "0" && tier.price !== "Individual" && (
+                      <div className="text-sm text-muted-foreground">so'm/oy</div>
+                    )}
+                    {tier.price === "0" && (
+                      <div className="text-sm text-muted-foreground">Boshlash uchun</div>
+                    )}
                     <div className="mt-4">
-                      <Badge variant="outline" className="text-primary border-primary">
+                      <Badge variant="outline" className="text-primary border-primary bg-primary/5">
                         {tier.commission} komissiya
                       </Badge>
                     </div>
                   </CardHeader>
                   
-                  <CardContent>
-                    <div className="space-y-4 mb-8">
+                  <CardContent className="flex-1 flex flex-col">
+                    <div className="space-y-3 mb-8 flex-1">
                       {tier.features.map((feature, featureIndex) => (
-                        <div key={featureIndex} className="flex items-center">
-                          <CheckCircle className="text-accent mr-3 h-4 w-4" />
-                          <span className="text-sm text-muted-foreground">{feature}</span>
+                        <div key={featureIndex} className="flex items-start">
+                          <CheckCircle className="text-accent mr-3 h-5 w-5 flex-shrink-0 mt-0.5" />
+                          <span className="text-sm text-foreground">{feature}</span>
                         </div>
                       ))}
                     </div>
                     
                     <Button 
                       variant={tier.buttonVariant}
-                      className="w-full scale-hover"
+                      size="lg"
+                      className={`w-full scale-hover font-semibold ${
+                        tier.popular 
+                          ? 'bg-gradient-to-r from-primary to-accent hover:shadow-lg' 
+                          : ''
+                      }`}
                       onClick={() => setLocation('/partner-registration')}
                       data-testid={`button-select-${tier.name.toLowerCase().replace(/\s+/g, '-')}`}
                     >
                       {tier.buttonText}
+                      <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>
