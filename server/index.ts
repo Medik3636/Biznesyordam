@@ -57,27 +57,51 @@ const allowedOrigins = [
 const envOrigins = (process.env.CORS_ORIGIN || "").split(",").filter(origin => origin.trim());
 allowedOrigins.push(...envOrigins);
 
+// Agar Render yoki boshqa hostlarda dinamik subdomain bo'lsa, ularni avtomatik ruxsat berish mumkin.
+// Masalan: biznesyordam-xxxxx.onrender.com — bunday subdomainlarni quyidagi qoida bilan ruxsat beramiz.
+const allowedHostPatterns = [
+  // ruxsat beriladigan host fragmentlari (harf registriga sezgir emas)
+  '.onrender.com',
+  '.replit.dev'
+];
+
 console.log("🔧 Allowed CORS Origins:", allowedOrigins);
+console.log("🔧 Allowed host patterns:", allowedHostPatterns);
 
 app.use(
   cors({
     origin: function(origin, callback) {
-      // Development uchun origin bo'lmasligi mumkin
+      // Development / server-to-server so'rovlar uchun origin bo'lmasligi mumkin -> ruxsat
       if (!origin) return callback(null, true);
-      
-      // Allow Replit development domains (dynamic proxy URLs)
-      if (origin && origin.includes('.replit.dev')) {
-        callback(null, true);
-        return;
-      }
-      
-      // Allow all known origins
+
+      // Agar origin allowedOrigins ro'yxatida bo'lsa ruxsat beramiz
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-        callback(null, true);
-      } else {
-        console.log("❌ CORS blocked for origin:", origin);
-        callback(new Error('Not allowed by CORS'));
+        return callback(null, true);
       }
+
+      // Agar origin dinamik, lekin ma'lum host pattern'ga mos kelsa (masalan .onrender.com), ruxsat beramiz
+      const lower = origin.toLowerCase();
+      for (const pat of allowedHostPatterns) {
+        if (lower.includes(pat)) {
+          return callback(null, true);
+        }
+      }
+
+      // Agar bu statik fayl so'rovi bo'lsa (assets, css, js) — ruxsat berish maqsadga muvofiq,
+      // chunki assetlar uchun CORS block brauzerda oq ekran keltirib chiqadi.
+      try {
+        // @ts-ignore: express req available via this
+        const reqPath = (this && this.req && this.req.path) || '';
+        if (reqPath.startsWith('/assets') || reqPath.endsWith('.css') || reqPath.endsWith('.js')) {
+          return callback(null, true);
+        }
+      } catch (e) {
+        // ignore
+      }
+
+      console.log("❌ CORS blocked for origin:", origin);
+      // return error so API callers see a clear CORS rejection; static assets already handled above
+      callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
