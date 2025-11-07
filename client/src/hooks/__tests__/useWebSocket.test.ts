@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-describe('WebSocket URL Generation', () =\u003e {
-  beforeEach(() =\u003e {
+describe('WebSocket URL Generation', () => {
+  beforeEach(() => {
     // Reset mocks
     vi.clearAllMocks();
   });
 
-  it('should generate correct WebSocket URL for development', () =\u003e {
+  it('should generate correct WebSocket URL for development', () => {
     // Mock window.location
     Object.defineProperty(window, 'location', {
       value: {
@@ -37,7 +37,7 @@ describe('WebSocket URL Generation', () =\u003e {
     expect(wsUrl).toBe(expectedUrl);
   });
 
-  it('should generate correct WebSocket URL for production with HTTPS', () =\u003e {
+  it('should generate correct WebSocket URL for production with HTTPS', () => {
     const apiUrl = 'https://biznesyordam-backend.onrender.com';
     const userId = 'test-user-123';
     const role = 'partner';
@@ -51,7 +51,7 @@ describe('WebSocket URL Generation', () =\u003e {
     expect(wsUrl).toBe(expectedUrl);
   });
 
-  it('should generate correct WebSocket URL for production with HTTP', () =\u003e {
+  it('should generate correct WebSocket URL for production with HTTP', () => {
     const apiUrl = 'http://example.com';
     const userId = 'test-user-456';
     const role = 'admin';
@@ -65,7 +65,7 @@ describe('WebSocket URL Generation', () =\u003e {
     expect(wsUrl).toBe(expectedUrl);
   });
 
-  it('should handle URL with port correctly', () =\u003e {
+  it('should handle URL with port correctly', () => {
     const apiUrl = 'https://api.example.com:8443';
     const userId = 'test-user-789';
     const role = 'customer';
@@ -79,7 +79,7 @@ describe('WebSocket URL Generation', () =\u003e {
     expect(wsUrl).toBe(expectedUrl);
   });
 
-  it('should properly encode special characters in userId and role', () =\u003e {
+  it('should properly encode special characters in userId and role', () => {
     const apiUrl = 'https://api.example.com';
     const userId = 'test-user@123';
     const role = 'partner+admin';

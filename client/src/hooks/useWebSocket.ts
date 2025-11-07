@@ -33,7 +33,7 @@ export function useWebSocket(): UseWebSocketReturn {
       setConnectionStatus('connecting');
       
       // Get WebSocket URL - handle both development and production
-      const getWebSocketUrl = () =\u003e {
+      const getWebSocketUrl = () => {
         // Check if API URL is configured (production)
         const apiUrl = import.meta.env.VITE_API_URL;
         
