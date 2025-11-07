@@ -32,10 +32,26 @@ export function useWebSocket(): UseWebSocketReturn {
     try {
       setConnectionStatus('connecting');
       
-      // Get WebSocket URL from current location
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws?userId=${user.id}&role=${user.role}`;
+      // Get WebSocket URL - handle both development and production
+      const getWebSocketUrl = () =\u003e {
+        // Check if API URL is configured (production)
+        const apiUrl = import.meta.env.VITE_API_URL;
+        
+        if (apiUrl) {
+          // Production: use configured API URL
+          const url = new URL(apiUrl);
+          const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+          return `${protocol}//${url.host}/ws?userId=${user.id}&role=${user.role}`;
+        } else {
+          // Development: use current location
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const host = window.location.host;
+          return `${protocol}//${host}/ws?userId=${user.id}&role=${user.role}`;
+        }
+      };
+      
+      const wsUrl = getWebSocketUrl();
+      console.log('🔌 Connecting to WebSocket:', wsUrl);
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
