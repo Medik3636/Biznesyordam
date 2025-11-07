@@ -1,17 +1,10 @@
 services:
   - type: web
     name: biznesyordam-backend
-    runtime: node
+    env: node
     plan: starter
     branch: main
-    buildCommand: |
-      echo "📦 Installing dependencies..."
-      npm install
-      echo "🏗️  Building application..."
-      npm run build
-      echo "✅ Build complete"
-      ls -la dist/
-      ls -la dist/public/ || echo "⚠️  dist/public not found"
+    buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
