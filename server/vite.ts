@@ -151,12 +151,29 @@ export function serveStatic(app: Express) {
     next();
   });
 
-  // Serve static files
-  app.use(express.static(distPath));
+  // Serve static files with proper configuration
+  app.use(express.static(distPath, {
+    index: 'index.html',
+    extensions: ['html'],
+    fallthrough: true
+  }));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
-    res.setHeader('Content-Type', 'text/html');
-    res.sendFile(path.resolve(distPath, "index.html"));
+  // SPA fallback - serve index.html for all non-API routes
+  app.use("*", (req, res) => {
+    const indexPath = path.resolve(distPath, "index.html");
+    
+    // Check if index.html exists
+    if (!fs.existsSync(indexPath)) {
+      log(`❌ index.html not found at: ${indexPath}`);
+      return res.status(500).send('Application not built correctly. index.html missing.');
+    }
+    
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.sendFile(indexPath, (err) => {
+      if (err) {
+        log(`❌ Error sending index.html: ${err.message}`);
+        res.status(500).send('Error loading application');
+      }
+    });
   });
 }

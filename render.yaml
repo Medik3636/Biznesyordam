@@ -1,10 +1,18 @@
 services:
   - type: web
     name: biznesyordam-backend
-    env: docker
-    plan: starter   # Render'ning bepul plani
+    runtime: node
+    plan: starter
     branch: main
-    dockerfilePath: ./Dockerfile
+    buildCommand: |
+      echo "📦 Installing dependencies..."
+      npm install
+      echo "🏗️  Building application..."
+      npm run build
+      echo "✅ Build complete"
+      ls -la dist/
+      ls -la dist/public/ || echo "⚠️  dist/public not found"
+    startCommand: npm start
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
