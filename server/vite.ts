@@ -80,25 +80,54 @@ export function serveStatic(app: Express) {
     );
   }
 
+  log(`📁 Serving static files from: ${distPath}`);
+
   // Static fayllarni serve qilishda CORS va cache control sozlamalarini qo'shamiz
   app.use(express.static(distPath, {
-    setHeaders: (res, path) => {
-      // Cache control - Replit iframe uchun muhim
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
-      // CSS va JS fayllar uchun CORS headerlarini qo'shamiz
-      if (path.endsWith('.css') || path.endsWith('.js')) {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'GET');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    setHeaders: (res, filePath) => {
+      // Proper MIME types
+      if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css');
+      } else if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript');
+      } else if (filePath.endsWith('.json')) {
+        res.setHeader('Content-Type', 'application/json');
+      } else if (filePath.endsWith('.svg')) {
+        res.setHeader('Content-Type', 'image/svg+xml');
+      } else if (filePath.endsWith('.png')) {
+        res.setHeader('Content-Type', 'image/png');
+      } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
+        res.setHeader('Content-Type', 'image/jpeg');
+      } else if (filePath.endsWith('.woff') || filePath.endsWith('.woff2')) {
+        res.setHeader('Content-Type', 'font/woff2');
       }
+      
+      // Cache control for production
+      if (process.env.NODE_ENV === 'production') {
+        // Cache static assets for 1 year
+        if (filePath.match(/\.(js|css|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else {
+          // Don't cache HTML
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+      } else {
+        // Development: no cache
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+      }
+      
+      // CORS headers for all static files
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     }
   }));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
+    res.setHeader('Content-Type', 'text/html');
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

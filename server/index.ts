@@ -71,6 +71,13 @@ app.use(
         return;
       }
       
+      // Allow all Render.com domains (*.onrender.com)
+      if (origin && origin.includes('.onrender.com')) {
+        console.log("✅ CORS allowed for Render domain:", origin);
+        callback(null, true);
+        return;
+      }
+      
       // Allow all known origins
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         callback(null, true);
