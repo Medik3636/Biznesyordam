@@ -75,6 +75,20 @@ export function serveStatic(app: Express) {
   const distPath = path.resolve(process.cwd(), "dist", "public");
 
   if (!fs.existsSync(distPath)) {
+    log(`❌ Build directory not found: ${distPath}`);
+    log(`⚠️  Please run 'npm run build' first`);
+    log(`📂 Current directory: ${process.cwd()}`);
+    log(`📂 Directory contents:`);
+    try {
+      const files = fs.readdirSync(process.cwd());
+      log(`   ${files.join(', ')}`);
+      if (fs.existsSync(path.resolve(process.cwd(), "dist"))) {
+        const distFiles = fs.readdirSync(path.resolve(process.cwd(), "dist"));
+        log(`📂 dist/ contents: ${distFiles.join(', ')}`);
+      }
+    } catch (e) {
+      log(`   Error reading directory: ${e}`);
+    }
     throw new Error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`,
     );
@@ -82,24 +96,35 @@ export function serveStatic(app: Express) {
 
   log(`📁 Serving static files from: ${distPath}`);
 
-  // Static fayllarni serve qilishda CORS va cache control sozlamalarini qo'shamiz
-  app.use(express.static(distPath, {
-    setHeaders: (res, filePath) => {
-      // Proper MIME types
+  // Middleware to set proper MIME types and headers BEFORE express.static
+  app.use((req, res, next) => {
+    const filePath = req.path;
+    
+    // Only process static file requests
+    if (!filePath.startsWith('/api') && !filePath.startsWith('/ws')) {
+      // Set proper MIME types based on file extension
       if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css');
+        res.setHeader('Content-Type', 'text/css; charset=utf-8');
       } else if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
       } else if (filePath.endsWith('.json')) {
-        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
       } else if (filePath.endsWith('.svg')) {
         res.setHeader('Content-Type', 'image/svg+xml');
       } else if (filePath.endsWith('.png')) {
         res.setHeader('Content-Type', 'image/png');
       } else if (filePath.endsWith('.jpg') || filePath.endsWith('.jpeg')) {
         res.setHeader('Content-Type', 'image/jpeg');
-      } else if (filePath.endsWith('.woff') || filePath.endsWith('.woff2')) {
+      } else if (filePath.endsWith('.woff')) {
+        res.setHeader('Content-Type', 'font/woff');
+      } else if (filePath.endsWith('.woff2')) {
         res.setHeader('Content-Type', 'font/woff2');
+      } else if (filePath.endsWith('.ttf')) {
+        res.setHeader('Content-Type', 'font/ttf');
+      } else if (filePath.endsWith('.eot')) {
+        res.setHeader('Content-Type', 'application/vnd.ms-fontobject');
+      } else if (filePath.endsWith('.html')) {
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
       }
       
       // Cache control for production
@@ -120,10 +145,14 @@ export function serveStatic(app: Express) {
       
       // CORS headers for all static files
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     }
-  }));
+    
+    next();
+  });
+
+  // Serve static files
+  app.use(express.static(distPath));
 
   // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {

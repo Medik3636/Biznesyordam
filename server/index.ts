@@ -156,7 +156,10 @@ app.use((req, res, next) => {
   }
 
   // ✅ Vite faqat developmentda ishlaydi
-  if (app.get("env") === "development") {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  log(`🔧 Environment: ${nodeEnv}`);
+  
+  if (nodeEnv === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
