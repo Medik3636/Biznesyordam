@@ -34,6 +34,10 @@ export default defineConfig({
       "@assets": path.resolve(__dirname, "attached_assets"),
     },
   },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react/jsx-runtime'],
+    exclude: [],
+  },
   root: path.resolve(__dirname, "client"),
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
@@ -49,32 +53,39 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // React core
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+          // React core - MUST include scheduler for proper React hooks
+          if (id.includes('node_modules/react/') || 
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/scheduler/')) {
             return 'react-vendor';
           }
           // Radix UI components
-          if (id.includes('@radix-ui')) {
+          if (id.includes('node_modules/@radix-ui')) {
             return 'ui-vendor';
           }
           // Charts
-          if (id.includes('recharts')) {
+          if (id.includes('node_modules/recharts')) {
             return 'chart-vendor';
           }
           // TanStack Query
-          if (id.includes('@tanstack/react-query')) {
+          if (id.includes('node_modules/@tanstack/react-query')) {
             return 'query-vendor';
           }
           // Form libraries
-          if (id.includes('react-hook-form') || id.includes('@hookform')) {
+          if (id.includes('node_modules/react-hook-form') || 
+              id.includes('node_modules/@hookform')) {
             return 'form-vendor';
           }
           // Icons
-          if (id.includes('lucide-react')) {
+          if (id.includes('node_modules/lucide-react')) {
             return 'icon-vendor';
           }
+          // Router
+          if (id.includes('node_modules/wouter')) {
+            return 'router-vendor';
+          }
           // Other large dependencies
-          if (id.includes('node_modules')) {
+          if (id.includes('node_modules/')) {
             return 'vendor';
           }
         },
