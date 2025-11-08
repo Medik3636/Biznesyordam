@@ -7,6 +7,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import { errorHandler, notFound } from "./errorHandler";
 // Mock database removed - using real database
 import { initializeWebSocket } from "./websocket";
+import { initializeAdmin } from "./initAdmin";
 import helmet from "helmet";
 import * as Sentry from "@sentry/node";
 import winston from "winston";
@@ -150,6 +151,9 @@ app.use((req, res, next) => {
 
   // ✅ Real database setup
   log("✅ Real database connection initialized");
+
+  // Initialize admin user (production-safe)
+  await initializeAdmin();
 
   const server = await registerRoutes(app);
 
