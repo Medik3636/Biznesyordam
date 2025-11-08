@@ -126,13 +126,23 @@ export async function getUserById(id: string): Promise<User | null> {
 
 export async function validateUserPassword(username: string, password: string): Promise<User | null> {
   try {
+    console.log('🔍 Validating password for username:', username);
     const user = await getUserByUsername(username);
-    if (!user) return null;
+    
+    if (!user) {
+      console.log('❌ User not found:', username);
+      return null;
+    }
+    
+    console.log('✅ User found:', { id: user.id, username: user.username, role: user.role });
+    console.log('🔐 Comparing password...');
     
     const isValid = await bcrypt.compare(password, user.password);
+    console.log('🔐 Password valid:', isValid);
+    
     return isValid ? user : null;
   } catch (error: any) {
-    console.error('Error validating password:', error);
+    console.error('❌ Error validating password:', error);
     return null;
   }
 }

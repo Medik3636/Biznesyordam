@@ -14,6 +14,7 @@ import {
 import { ZodError } from "zod";
 import swaggerUi from "swagger-ui-express";
 import swaggerJSDoc from "swagger-jsdoc";
+import debugRoutes from "./debugRoutes";
 
 // Enhanced authentication middleware with better error handling
 function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -86,6 +87,9 @@ export function registerRoutes(app: express.Application): Server {
 
   // Health check endpoint
   app.get("/api/health", healthCheck);
+
+  // Debug endpoints (remove after fixing)
+  app.use("/api", debugRoutes);
 
   // Swagger setup
   const swaggerSpec = swaggerJSDoc({
