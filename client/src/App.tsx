@@ -9,6 +9,8 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Pages
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
+import AdminLogin from "@/pages/AdminLogin";
 import PartnerDashboard from "@/pages/PartnerDashboard";
 import AdminPanel from "@/pages/AdminPanel";
 import PartnerRegistration from "@/pages/PartnerRegistration";
@@ -18,6 +20,8 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Landing} />
+      <Route path="/login" component={Login} />
+      <Route path="/admin-login" component={AdminLogin} />
       <Route path="/partner-registration" component={PartnerRegistration} />
       <Route path="/partner-dashboard" component={PartnerDashboard} />
       <Route path="/admin-panel" component={AdminPanel} />

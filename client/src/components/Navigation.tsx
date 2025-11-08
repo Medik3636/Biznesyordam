@@ -96,7 +96,7 @@ export function Navigation() {
                   {t('nav.pricing')}
                 </button>
                 <Button 
-                  onClick={() => setLocation('/partner-dashboard')}
+                  onClick={() => setLocation('/login')}
                   className="bg-primary hover:bg-primary/90 mr-2 hover-lift"
                   data-testid="button-login"
                 >

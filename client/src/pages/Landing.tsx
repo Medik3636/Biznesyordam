@@ -550,6 +550,12 @@ export default function Landing() {
           
           <div className="border-t border-slate-800 mt-12 pt-8 text-center text-slate-400">
             <p>&copy; 2024 BiznesYordam. Barcha huquqlar himoyalangan.</p>
+            <button 
+              onClick={() => setLocation('/admin-login')}
+              className="mt-4 text-xs text-slate-500 hover:text-slate-300 transition-colors"
+            >
+              Admin Panel
+            </button>
           </div>
         </div>
       </footer>
