@@ -8,6 +8,7 @@ import { errorHandler, notFound } from "./errorHandler";
 // Mock database removed - using real database
 import { initializeWebSocket } from "./websocket";
 import { initializeAdmin } from "./initAdmin";
+import { runMigrations } from "./migrate";
 import helmet from "helmet";
 import * as Sentry from "@sentry/node";
 import winston from "winston";
@@ -151,6 +152,14 @@ app.use((req, res, next) => {
 
   // ✅ Real database setup
   log("✅ Real database connection initialized");
+
+  // Run database migrations first
+  try {
+    await runMigrations();
+  } catch (error) {
+    console.error('❌ Failed to run migrations:', error);
+    console.log('⚠️  Continuing without migrations - database may not be initialized');
+  }
 
   // Initialize admin user (production-safe)
   await initializeAdmin();

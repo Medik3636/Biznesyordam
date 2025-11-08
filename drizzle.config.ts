@@ -6,7 +6,7 @@ config();
 
 export default {
   schema: "./shared/schema.ts",
-  out: "./drizzle",
+  out: "./migrations",
   dialect: process.env.DATABASE_URL?.startsWith('postgresql') ? "postgresql" : "sqlite",
   dbCredentials: process.env.DATABASE_URL?.startsWith('postgresql') 
     ? {
