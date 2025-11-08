@@ -103,14 +103,14 @@ export default function Landing() {
   const pricingTiers = [
     {
       name: "Starter Pro",
-      price: "0",
-      commission: "30-45%",
-      description: "Kichik biznes uchun",
+      price: "2,500,000",
+      commission: "25%",
+      description: "Yangi boshlovchilar uchun",
       features: [
-        "Asosiy fulfillment",
         "1 marketplace",
-        "Email qo'llab-quvvatlash",
-        "Asosiy analytics"
+        "100 mahsulot",
+        "100kg omborxona",
+        "Email qo'llab-quvvatlash"
       ],
       buttonText: "Boshlash",
       buttonVariant: "outline" as const,
@@ -118,14 +118,14 @@ export default function Landing() {
     },
     {
       name: "Business Standard",
-      price: "4,500,000",
-      commission: "18-25%",
-      description: "O'rta biznes uchun",
+      price: "5,000,000",
+      commission: "20%",
+      description: "O'sib borayotgan bizneslar uchun",
       features: [
-        "Professional fulfillment",
-        "3 marketplace",
-        "Telefon qo'llab-quvvatlash",
-        "Sof Foyda Dashboard"
+        "2 marketplace",
+        "500 mahsulot",
+        "500kg omborxona",
+        "Telefon qo'llab-quvvatlash"
       ],
       buttonText: "Tanlash",
       buttonVariant: "default" as const,
@@ -133,14 +133,14 @@ export default function Landing() {
     },
     {
       name: "Professional Plus",
-      price: "8,500,000",
-      commission: "15-20%",
-      description: "Katta biznes uchun",
+      price: "10,000,000",
+      commission: "15%",
+      description: "Katta bizneslar uchun",
       features: [
-        "Premium fulfillment",
-        "Barcha marketplace",
-        "24/7 qo'llab-quvvatlash",
-        "Trend Hunter"
+        "4 marketplace",
+        "2000 mahsulot",
+        "2000kg omborxona",
+        "24/7 qo'llab-quvvatlash"
       ],
       buttonText: "Tanlash",
       buttonVariant: "default" as const,
@@ -148,14 +148,14 @@ export default function Landing() {
     },
     {
       name: "Enterprise Elite",
-      price: "Individual",
-      commission: "12-18%",
-      description: "Korporativ yechim",
+      price: "20,000,000",
+      commission: "10%",
+      description: "Yirik kompaniyalar uchun",
       features: [
-        "VIP fulfillment",
-        "Custom integrations",
-        "Dedicated manager",
-        "Individual yondashuv"
+        "Cheksiz marketplace",
+        "Cheksiz mahsulot",
+        "Cheksiz omborxona",
+        "Dedicated manager"
       ],
       buttonText: "Bog'lanish",
       buttonVariant: "secondary" as const,

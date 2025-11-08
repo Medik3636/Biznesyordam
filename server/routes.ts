@@ -667,6 +667,26 @@ export function registerRoutes(app: express.Application): Server {
     res.json(messages);
   }));
 
+  // Partner endpoint to get admin info for chat
+  app.get("/api/partner/admin-chat", requirePartner, asyncHandler(async (req: Request, res: Response) => {
+    // Get first admin user
+    const admins = await storage.getUsersByRole('admin');
+    if (admins.length === 0) {
+      return res.status(404).json({
+        message: "Admin topilmadi",
+        code: "ADMIN_NOT_FOUND"
+      });
+    }
+    
+    const admin = admins[0];
+    res.json({
+      id: admin.id,
+      username: admin.username,
+      firstName: admin.firstName || 'Admin',
+      lastName: admin.lastName || 'Support'
+    });
+  }));
+
   app.post("/api/chat/partners/:partnerId/message", requireAuth, asyncHandler(async (req: Request, res: Response) => {
     const { partnerId } = req.params;
     const { message, messageType = 'text', fileUrl, fileName, fileSize } = req.body;

@@ -1,5 +1,5 @@
 // client/src/pages/PartnerDashboard.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,7 +12,6 @@ import { ProductForm } from '@/components/ProductForm';
 import { FulfillmentRequestForm } from '@/components/FulfillmentRequestForm';
 import { ProfitDashboard } from '@/components/ProfitDashboard';
 import { TrendingProducts } from '@/components/TrendingProducts';
-import { ChatSystem } from '@/components/ChatSystem';
 import { TierSelectionModal } from '@/components/TierSelectionModal';
 import { DataExportButton } from '@/components/DataExportButton';
 import { ComprehensiveAnalytics } from '@/components/ComprehensiveAnalytics';
@@ -31,6 +30,9 @@ import {
   Globe, Truck, Star, ArrowRight, Plus, Eye, Edit, Trash2, Download, Upload, RefreshCw,
   FileSpreadsheet, TrendingDown
 } from 'lucide-react';
+
+// CHAT faqat "Chat" tabida yuklansin
+const ChatSystem = lazy(() => import('@/components/ChatSystem'));
 
 interface Product { id: string; name: string; category: string; description: string; price: string; costPrice: string; sku: string; barcode: string; weight: string; isActive: boolean; createdAt: string; }
 interface FulfillmentRequest { id: string; title: string; description: string; status: string; priority: string; estimatedCost: string; actualCost: string; createdAt: string; }
@@ -247,7 +249,16 @@ export default function PartnerDashboard() {
               <Card className="h-[600px]">
                 <CardHeader><CardTitle><MessageCircle className="w-5 h-5 inline mr-2" />Admin bilan Chat</CardTitle></CardHeader>
                 <CardContent className="p-0 h-full">
-                  <ChatSystem partnerId={partner?.id} />
+                  <Suspense fallback={
+                    <div className="flex items-center justify-center h-full">
+                      <div className="text-center">
+                        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
+                        <p className="text-muted-foreground">Chat yuklanmoqda...</p>
+                      </div>
+                    </div>
+                  }>
+                    <ChatSystem partnerId={partner?.id} />
+                  </Suspense>
                 </CardContent>
               </Card>
             </TabsContent>

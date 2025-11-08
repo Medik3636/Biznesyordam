@@ -137,6 +137,16 @@ export async function validateUserPassword(username: string, password: string): 
   }
 }
 
+export async function getUsersByRole(role: 'admin' | 'partner' | 'customer'): Promise<User[]> {
+  try {
+    const userList = await db.select().from(users).where(eq(users.role, role));
+    return userList;
+  } catch (error: any) {
+    console.error('Error getting users by role:', error);
+    return [];
+  }
+}
+
 // Partner operations
 export async function createPartner(partnerData: {
   userId: string;
@@ -1287,6 +1297,7 @@ export const storage = {
   createUser,
   getUserByUsername,
   getUserById,
+  getUsersByRole,
   validateUserPassword,
   createPartner,
   getPartnerByUserId,

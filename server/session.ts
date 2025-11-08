@@ -32,9 +32,9 @@ export function getSessionConfig() {
     cookie: {
       secure: isProd,
       httpOnly: true,
-      sameSite: isProd ? "none" as const : "lax" as const,
+      sameSite: "lax" as const, // Changed to "lax" for better compatibility
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      domain: isProd ? '.biznesyordam.uz' : undefined
+      domain: undefined // Remove domain restriction for Render
     },
     rolling: true, // Reset maxAge on every request
     proxy: isProd // Trust proxy in production (Render uses proxy)

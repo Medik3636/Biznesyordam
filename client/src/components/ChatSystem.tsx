@@ -69,12 +69,15 @@ export function ChatSystem({ partnerId, isAdmin = false }: ChatSystemProps) {
     scrollToBottom();
   }, [messages]);
 
-  // Load chat partners (for admin)
+  // Load chat partners (for admin) or load admin for partner
   useEffect(() => {
     if (isAdmin) {
       loadChatPartners();
+    } else if (partnerId) {
+      // Partner mode: load admin as chat partner
+      loadAdminAsPartner();
     }
-  }, [isAdmin]);
+  }, [isAdmin, partnerId]);
 
   // Load messages for selected partner
   useEffect(() => {
@@ -102,6 +105,34 @@ export function ChatSystem({ partnerId, isAdmin = false }: ChatSystemProps) {
       }
     }
   }, [isConnected, selectedPartner, user?.id, lastMessage]);
+
+  const loadAdminAsPartner = async () => {
+    try {
+      setIsLoading(true);
+      // For partner: load admin user as chat partner
+      const response = await apiRequest('GET', '/api/partner/admin-chat');
+      const adminData = await response.json();
+      
+      const adminPartner: ChatPartner = {
+        id: 'admin',
+        businessName: 'BiznesYordam Admin',
+        businessCategory: 'Support',
+        userData: adminData,
+        isOnline: true
+      };
+      
+      setSelectedPartner(adminPartner);
+    } catch (error) {
+      console.error('Error loading admin:', error);
+      toast({
+        title: "Xatolik",
+        description: "Admin ma'lumotlari yuklanmadi",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const loadChatPartners = async () => {
     try {
@@ -440,3 +471,6 @@ export function ChatSystem({ partnerId, isAdmin = false }: ChatSystemProps) {
     </div>
   );
 }
+
+// Default export for lazy loading
+export default ChatSystem;

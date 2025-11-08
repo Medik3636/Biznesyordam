@@ -254,7 +254,7 @@ export function FulfillmentCalculator({ className }: FulfillmentCalculatorProps)
                         {getTierIcon(key as keyof typeof FULFILLMENT_TIERS)}
                         <span>{tier.name}</span>
                         <Badge variant="outline" className={getTierColor(key as keyof typeof FULFILLMENT_TIERS)}>
-                          {tier.fixedPayment === null ? 'Individual' : formatSom(tier.fixedPayment)}
+                          {formatSom(tier.monthlyFee)}
                         </Badge>
                       </div>
                     </SelectItem>
