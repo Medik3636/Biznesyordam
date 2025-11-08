@@ -28,15 +28,15 @@ export function getSessionConfig() {
     secret: process.env.SESSION_SECRET || "your-secret-key-dev-only",
     resave: false,
     saveUninitialized: false,
-    name: 'biznesyordam.sid', // Custom session cookie name
+    name: 'connect.sid', // Standard session cookie name
     cookie: {
-      secure: isProd,
+      secure: false, // Set to false for Render (they handle HTTPS at proxy level)
       httpOnly: true,
-      sameSite: "lax" as const, // Changed to "lax" for better compatibility
+      sameSite: "lax" as const,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      domain: undefined // Remove domain restriction for Render
+      path: '/'
     },
     rolling: true, // Reset maxAge on every request
-    proxy: isProd // Trust proxy in production (Render uses proxy)
+    proxy: true // Always trust proxy for Render
   } as session.SessionOptions;
 }

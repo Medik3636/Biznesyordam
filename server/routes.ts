@@ -101,6 +101,8 @@ export function registerRoutes(app: express.Application): Server {
   // Authentication routes
   app.post("/api/auth/login", asyncHandler(async (req: Request, res: Response) => {
     try {
+      console.log('🔐 Login attempt:', { username: req.body.username, hasSession: !!req.session });
+      
       const { username, password } = loginSchema.parse(req.body);
       
       const user = await storage.validateUserPassword(username, password);
@@ -152,6 +154,21 @@ export function registerRoutes(app: express.Application): Server {
         payload: { username, role: user.role }
       });
 
+      // Save session before sending response
+      await new Promise<void>((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('❌ Session save error:', err);
+            reject(err);
+          } else {
+            console.log('✅ Session saved successfully for user:', user.id);
+            resolve();
+          }
+        });
+      });
+
+      console.log('✅ Login successful, session ID:', req.sessionID);
+
       res.json({ 
         user: req.session.user, 
         partner,
@@ -196,6 +213,13 @@ export function registerRoutes(app: express.Application): Server {
   }));
 
   app.get("/api/auth/me", asyncHandler(async (req: Request, res: Response) => {
+    console.log('🔍 Auth check:', { 
+      hasSession: !!req.session, 
+      hasUser: !!req.session?.user,
+      sessionID: req.sessionID,
+      cookies: req.headers.cookie 
+    });
+    
     if (!req.session?.user) {
       return res.status(401).json({ 
         message: "Avtorizatsiya yo'q",

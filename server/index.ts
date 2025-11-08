@@ -62,27 +62,32 @@ console.log("🔧 Allowed CORS Origins:", allowedOrigins);
 app.use(
   cors({
     origin: function(origin, callback) {
-      // Development uchun origin bo'lmasligi mumkin
-      if (!origin) return callback(null, true);
+      // Same-origin requests (no origin header) - always allow
+      if (!origin) {
+        console.log("✅ CORS: Same-origin request allowed");
+        return callback(null, true);
+      }
       
       // Allow Replit development domains (dynamic proxy URLs)
       if (origin && origin.includes('.replit.dev')) {
+        console.log("✅ CORS: Replit domain allowed:", origin);
         callback(null, true);
         return;
       }
       
       // Allow all Render.com domains (*.onrender.com)
       if (origin && origin.includes('.onrender.com')) {
-        console.log("✅ CORS allowed for Render domain:", origin);
+        console.log("✅ CORS: Render domain allowed:", origin);
         callback(null, true);
         return;
       }
       
       // Allow all known origins
       if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+        console.log("✅ CORS: Known origin allowed:", origin);
         callback(null, true);
       } else {
-        console.log("❌ CORS blocked for origin:", origin);
+        console.log("❌ CORS: Origin blocked:", origin);
         callback(new Error('Not allowed by CORS'));
       }
     },
