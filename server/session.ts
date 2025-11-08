@@ -25,7 +25,7 @@ export function getSessionConfig() {
     store = new PgSession({
       pool,
       tableName: 'session',
-      createTableIfMissing: true,
+      createTableIfMissing: false, // Don't auto-create, use migration instead
       pruneSessionInterval: 60 * 15 // Prune expired sessions every 15 minutes
     });
   } else {
