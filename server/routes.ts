@@ -162,12 +162,16 @@ export function registerRoutes(app: express.Application): Server {
             reject(err);
           } else {
             console.log('✅ Session saved successfully for user:', user.id);
+            console.log('📝 Session ID:', req.sessionID);
+            console.log('🍪 Session cookie will be set');
             resolve();
           }
         });
       });
 
-      console.log('✅ Login successful, session ID:', req.sessionID);
+      // Explicitly set cookie header for debugging
+      const cookieValue = `connect.sid=${req.sessionID}; Path=/; HttpOnly; SameSite=Lax`;
+      console.log('🍪 Setting cookie:', cookieValue);
 
       res.json({ 
         user: req.session.user, 

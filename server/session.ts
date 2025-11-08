@@ -19,7 +19,7 @@ export function getSessionConfig() {
     console.warn('⚠️  Consider using PostgreSQL or Redis session store');
   }
 
-  return {
+  const sessionConfig = {
     store: new MemoryStoreSession({
       checkPeriod: 86400000, // 24 hours
       ttl: 7 * 24 * 60 * 60 * 1000, // 7 days
@@ -28,15 +28,24 @@ export function getSessionConfig() {
     secret: process.env.SESSION_SECRET || "your-secret-key-dev-only",
     resave: false,
     saveUninitialized: false,
-    name: 'connect.sid', // Standard session cookie name
+    name: 'connect.sid',
     cookie: {
-      secure: false, // Set to false for Render (they handle HTTPS at proxy level)
+      secure: false, // Must be false for Render (proxy handles HTTPS)
       httpOnly: true,
       sameSite: "lax" as const,
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/'
+      path: '/',
+      domain: undefined // Let browser handle domain
     },
-    rolling: true, // Reset maxAge on every request
-    proxy: true // Always trust proxy for Render
+    rolling: true,
+    proxy: true
   } as session.SessionOptions;
+
+  console.log('🔧 Session config:', {
+    name: sessionConfig.name,
+    cookie: sessionConfig.cookie,
+    proxy: sessionConfig.proxy
+  });
+
+  return sessionConfig;
 }
