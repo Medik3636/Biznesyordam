@@ -11,6 +11,9 @@ import { Navigation } from '@/components/Navigation';
 import { LoginForm } from '@/components/LoginForm';
 import { TrendingProducts } from '@/components/TrendingProducts';
 import { MarketplaceApiConfig } from '@/components/MarketplaceApiConfig';
+import { ComprehensiveAnalytics } from '@/components/ComprehensiveAnalytics';
+import { DataExportButton } from '@/components/DataExportButton';
+import { ScheduledReports } from '@/components/ScheduledReports';
 import { useAuth } from '@/hooks/useAuth';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
@@ -406,10 +409,14 @@ export default function AdminPanel() {
 
           {/* Main Content */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab} defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
                 Umumiy
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center gap-2">
+                <FileText className="w-4 h-4" />
+                Tahlil
               </TabsTrigger>
               <TabsTrigger value="partners" className="flex items-center gap-2">
                 <Users className="w-4 h-4" />
@@ -426,6 +433,14 @@ export default function AdminPanel() {
               <TabsTrigger value="trends" className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 Trendlar
+              </TabsTrigger>
+              <TabsTrigger value="reports" className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Hisobotlar
+              </TabsTrigger>
+              <TabsTrigger value="settings" className="flex items-center gap-2">
+                <Settings className="w-4 h-4" />
+                Sozlamalar
               </TabsTrigger>
             </TabsList>
 
@@ -467,6 +482,10 @@ export default function AdminPanel() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
+                      <Button onClick={() => setSelectedTab('analytics')} variant="outline" className="w-full justify-start">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Tahlil va Statistika
+                      </Button>
                       <Button onClick={() => setSelectedTab('partners')} variant="outline" className="w-full justify-start">
                         <Users className="w-4 h-4 mr-2" />
                         Hamkorlarni boshqarish
@@ -478,6 +497,14 @@ export default function AdminPanel() {
                       <Button onClick={() => setSelectedTab('tiers')} variant="outline" className="w-full justify-start">
                         <Crown className="w-4 h-4 mr-2" />
                         Tarif so'rovlari
+                      </Button>
+                      <Button onClick={() => setSelectedTab('reports')} variant="outline" className="w-full justify-start">
+                        <Download className="w-4 h-4 mr-2" />
+                        Hisobotlar
+                      </Button>
+                      <Button onClick={() => setSelectedTab('settings')} variant="outline" className="w-full justify-start">
+                        <Settings className="w-4 h-4 mr-2" />
+                        Sozlamalar
                       </Button>
                     </div>
                   </CardContent>
@@ -793,6 +820,121 @@ export default function AdminPanel() {
             {/* Trending Products Tab */}
             <TabsContent value="trends" className="space-y-6">
               <TrendingProducts />
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <Card className="shadow-elegant">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Keng Qamrovli Tahlil
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ComprehensiveAnalytics />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Reports Tab */}
+            <TabsContent value="reports" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="shadow-elegant">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Download className="w-5 h-5" />
+                      Ma'lumotlarni Eksport Qilish
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="font-semibold mb-2">Hamkorlar Hisoboti</h3>
+                      <DataExportButton 
+                        data={partners} 
+                        filename="hamkorlar-hisoboti"
+                        type="partners"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-2">So'rovlar Hisoboti</h3>
+                      <DataExportButton 
+                        data={fulfillmentRequests} 
+                        filename="sorovlar-hisoboti"
+                        type="requests"
+                      />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-2">Tarif So'rovlari Hisoboti</h3>
+                      <DataExportButton 
+                        data={tierUpgradeRequests} 
+                        filename="tarif-sorovlari"
+                        type="tier-requests"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-elegant">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Clock className="w-5 h-5" />
+                      Rejalashtirilgan Hisobotlar
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ScheduledReports />
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="shadow-elegant">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Globe className="w-5 h-5" />
+                      Marketplace API Sozlamalari
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <MarketplaceApiConfig />
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-elegant">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Settings className="w-5 h-5" />
+                      Tizim Sozlamalari
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <h3 className="font-semibold">Platform Sozlamalari</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Tizim sozlamalari va konfiguratsiyalar
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Button variant="outline" className="w-full justify-start">
+                        <Database className="w-4 h-4 mr-2" />
+                        Ma'lumotlar Bazasi
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Shield className="w-4 h-4 mr-2" />
+                        Xavfsizlik
+                      </Button>
+                      <Button variant="outline" className="w-full justify-start">
+                        <Globe className="w-4 h-4 mr-2" />
+                        API Sozlamalari
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
           </Tabs>
         </div>
