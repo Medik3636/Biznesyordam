@@ -20,7 +20,6 @@ import {
   Users,
   Package,
   TrendingUp,
-  MessageCircle,
   Settings,
   CheckCircle,
   XCircle,
@@ -47,7 +46,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-// CHAT faqat kerak bo'lganda yuklansin - dynamic import
+
 
 interface Partner {
   id: string;
@@ -115,8 +114,6 @@ export default function AdminPanel() {
   const [selectedTab, setSelectedTab] = useState<string>('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [ChatComponent, setChatComponent] = useState<any>(null);
 
   // Auth tekshiruvi + redirect
   useEffect(() => {
@@ -127,16 +124,6 @@ export default function AdminPanel() {
       setLocation('/');
     }
   }, [user, authLoading, setLocation]);
-
-  // Chat komponentini faqat ochilganda yuklash
-  useEffect(() => {
-    if (isChatOpen && !ChatComponent) {
-      console.log('Loading ChatSystem component...');
-      import('@/components/ChatSystem').then((module) => {
-        setChatComponent(() => module.default);
-      });
-    }
-  }, [isChatOpen, ChatComponent]);
 
   // Loading holati
   if (authLoading) {
@@ -492,10 +479,6 @@ export default function AdminPanel() {
                         <Crown className="w-4 h-4 mr-2" />
                         Tarif so'rovlari
                       </Button>
-                      <Button onClick={() => setIsChatOpen(true)} variant="outline" className="w-full justify-start">
-                        <MessageCircle className="w-4 h-4 mr-2" />
-                        Chat ochish
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -814,56 +797,6 @@ export default function AdminPanel() {
           </Tabs>
         </div>
       </div>
-
-      {/* Floating Chat Button - faqat overview tabida ko'rinadi */}
-      {selectedTab === 'overview' && (
-        <>
-          {/* Floating Chat Widget */}
-          {isChatOpen && (
-            <div className="fixed bottom-20 right-6 w-96 h-[600px] bg-background border rounded-lg shadow-2xl z-50 flex flex-col">
-              <div className="flex items-center justify-between p-4 border-b bg-primary text-primary-foreground rounded-t-lg">
-                <div className="flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5" />
-                  <h3 className="font-semibold">Hamkorlar bilan Chat</h3>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIsChatOpen(false)}
-                  className="text-primary-foreground hover:bg-primary-foreground/20"
-                >
-                  <XCircle className="w-5 h-5" />
-                </Button>
-              </div>
-              <div className="flex-1 overflow-hidden">
-                {ChatComponent ? (
-                  <ChatComponent isAdmin={true} />
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
-                      <p className="text-muted-foreground">Chat yuklanmoqda...</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Floating Chat Button */}
-          <Button
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg hover:shadow-xl transition-all z-40"
-            size="icon"
-          >
-            {isChatOpen ? (
-              <XCircle className="w-6 h-6" />
-            ) : (
-              <MessageCircle className="w-6 h-6" />
-            )}
-          </Button>
-        </>
-      )}
     </div>
   );
 }
