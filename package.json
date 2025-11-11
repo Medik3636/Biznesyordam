@@ -89,7 +89,7 @@
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "cross-env": "^10.0.0",
+    "cross-env": "^10.1.0",
     "csurf": "^1.11.0",
     "date-fns": "^3.6.0",
     "dotenv": "^17.2.1",

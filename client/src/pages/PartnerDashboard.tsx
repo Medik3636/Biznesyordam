@@ -1,5 +1,5 @@
 // client/src/pages/PartnerDashboard.tsx
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,8 +31,7 @@ import {
   FileSpreadsheet, TrendingDown, XCircle
 } from 'lucide-react';
 
-// CHAT faqat "Chat" tabida yuklansin
-const ChatSystem = lazy(() => import('@/components/ChatSystem'));
+// CHAT faqat kerak bo'lganda yuklansin - dynamic import
 
 interface Product { id: string; name: string; category: string; description: string; price: string; costPrice: string; sku: string; barcode: string; weight: string; isActive: boolean; createdAt: string; }
 interface FulfillmentRequest { id: string; title: string; description: string; status: string; priority: string; estimatedCost: string; actualCost: string; createdAt: string; }
@@ -46,6 +45,7 @@ export default function PartnerDashboard() {
   const [selectedTab, setSelectedTab] = useState('overview');
   const [showTierModal, setShowTierModal] = useState(false);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [ChatComponent, setChatComponent] = useState<any>(null);
 
   // YANGI: Auth yuklanayotganda loading ko‘rsatish
   useEffect(() => {
@@ -59,6 +59,16 @@ export default function PartnerDashboard() {
       setLocation('/'); // yoki boshqa sahifa
     }
   }, [user, authLoading, setLocation, partner]);
+
+  // Chat komponentini faqat ochilganda yuklash
+  useEffect(() => {
+    if (isChatOpen && !ChatComponent) {
+      console.log('Loading ChatSystem component...');
+      import('@/components/ChatSystem').then((module) => {
+        setChatComponent(() => module.default);
+      });
+    }
+  }, [isChatOpen, ChatComponent]);
 
   // Agar hali yuklanayotgan bo‘lsa — loading
   if (authLoading) {
@@ -283,16 +293,16 @@ export default function PartnerDashboard() {
                 </Button>
               </div>
               <div className="flex-1 overflow-hidden">
-                <Suspense fallback={
+                {ChatComponent ? (
+                  <ChatComponent partnerId={partner?.id} />
+                ) : (
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center">
                       <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
                       <p className="text-muted-foreground">Chat yuklanmoqda...</p>
                     </div>
                   </div>
-                }>
-                  <ChatSystem partnerId={partner?.id} />
-                </Suspense>
+                )}
               </div>
             </div>
           )}

@@ -1,5 +1,5 @@
 // client/src/pages/AdminPanel.tsx
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,8 +47,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 
-// CHAT faqat "Chat" tabida yuklansin
-const ChatSystem = lazy(() => import('@/components/ChatSystem'));
+// CHAT faqat kerak bo'lganda yuklansin - dynamic import
 
 interface Partner {
   id: string;
@@ -117,6 +116,7 @@ export default function AdminPanel() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [ChatComponent, setChatComponent] = useState<any>(null);
 
   // Auth tekshiruvi + redirect
   useEffect(() => {
@@ -127,6 +127,16 @@ export default function AdminPanel() {
       setLocation('/');
     }
   }, [user, authLoading, setLocation]);
+
+  // Chat komponentini faqat ochilganda yuklash
+  useEffect(() => {
+    if (isChatOpen && !ChatComponent) {
+      console.log('Loading ChatSystem component...');
+      import('@/components/ChatSystem').then((module) => {
+        setChatComponent(() => module.default);
+      });
+    }
+  }, [isChatOpen, ChatComponent]);
 
   // Loading holati
   if (authLoading) {
@@ -826,16 +836,16 @@ export default function AdminPanel() {
                 </Button>
               </div>
               <div className="flex-1 overflow-hidden">
-                <Suspense fallback={
+                {ChatComponent ? (
+                  <ChatComponent isAdmin={true} />
+                ) : (
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center">
                       <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
                       <p className="text-muted-foreground">Chat yuklanmoqda...</p>
                     </div>
                   </div>
-                }>
-                  <ChatSystem isAdmin={true} />
-                </Suspense>
+                )}
               </div>
             </div>
           )}
