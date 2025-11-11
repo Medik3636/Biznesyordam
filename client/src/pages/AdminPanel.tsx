@@ -409,9 +409,9 @@ export default function AdminPanel() {
 
           {/* Main Content */}
           <Tabs value={selectedTab} onValueChange={setSelectedTab} defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="overview" className="flex items-center gap-2">
-                <BarChart3 className="w-  w-4 h-4" />
+                <BarChart3 className="w-4 h-4" />
                 Umumiy
               </TabsTrigger>
               <TabsTrigger value="partners" className="flex items-center gap-2">
@@ -429,10 +429,6 @@ export default function AdminPanel() {
               <TabsTrigger value="trends" className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4" />
                 Trendlar
-              </TabsTrigger>
-              <TabsTrigger value="chat" className="flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" />
-                Chat
               </TabsTrigger>
             </TabsList>
 
@@ -486,9 +482,9 @@ export default function AdminPanel() {
                         <Crown className="w-4 h-4 mr-2" />
                         Tarif so'rovlari
                       </Button>
-                      <Button onClick={() => setSelectedTab('chat')} variant="outline" className="w-full justify-start">
+                      <Button onClick={() => setIsChatOpen(true)} variant="outline" className="w-full justify-start">
                         <MessageCircle className="w-4 h-4 mr-2" />
-                        Chat boshqaruvi
+                        Chat ochish
                       </Button>
                     </div>
                   </CardContent>
@@ -804,30 +800,6 @@ export default function AdminPanel() {
             {/* Trending Products Tab */}
             <TabsContent value="trends" className="space-y-6">
               <TrendingProducts />
-            </TabsContent>
-
-            {/* Chat Tab — faqat shu yerda yuklansin */}
-            <TabsContent value="chat" className="space-y-6">
-              <Card className="h-[600px]">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageCircle className="w-5 h-5" />
-                    Hamkorlar bilan Chat
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 h-full">
-                  <Suspense fallback={
-                    <div className="h-full flex items-center justify-center bg-muted/10">
-                      <div className="text-center">
-                        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
-                        <p className="text-muted-foreground">Chat yuklanmoqda...</p>
-                      </div>
-                    </div>
-                  }>
-                    <ChatSystem isAdmin={true} />
-                  </Suspense>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>

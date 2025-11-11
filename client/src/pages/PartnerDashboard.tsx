@@ -49,13 +49,16 @@ export default function PartnerDashboard() {
 
   // YANGI: Auth yuklanayotganda loading ko‘rsatish
   useEffect(() => {
+    console.log('PartnerDashboard Auth Check:', { authLoading, user: user?.username, role: user?.role, partner: partner?.businessName });
     if (authLoading) return;
     if (!user) {
+      console.log('No user, redirecting to login');
       setLocation('/login');
     } else if (user.role !== 'partner') {
+      console.log('User is not partner, redirecting to home');
       setLocation('/'); // yoki boshqa sahifa
     }
-  }, [user, authLoading, setLocation]);
+  }, [user, authLoading, setLocation, partner]);
 
   // Agar hali yuklanayotgan bo‘lsa — loading
   if (authLoading) {
@@ -198,7 +201,7 @@ export default function PartnerDashboard() {
           </div>
 
           <Tabs value={selectedTab} onValueChange={setSelectedTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-9">
+            <TabsList className="grid w-full grid-cols-8">
               <TabsTrigger value="overview"><BarChart3 className="w-4 h-4 mr-2" />Umumiy</TabsTrigger>
               <TabsTrigger value="inventory"><Package className="w-4 h-4 mr-2" />Ombor</TabsTrigger>
               <TabsTrigger value="orders"><Truck className="w-4 h-4 mr-2" />Buyurtmalar</TabsTrigger>
@@ -207,7 +210,6 @@ export default function PartnerDashboard() {
               <TabsTrigger value="requests"><Truck className="w-4 h-4 mr-2" />So'rovlar</TabsTrigger>
               <TabsTrigger value="profit"><DollarSign className="w-4 h-4 mr-2" />Foyda</TabsTrigger>
               <TabsTrigger value="trends"><TrendingUp className="w-4 h-4 mr-2" />Trendlar</TabsTrigger>
-              <TabsTrigger value="chat"><MessageCircle className="w-4 h-4 mr-2" />Chat</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -246,23 +248,6 @@ export default function PartnerDashboard() {
             <TabsContent value="requests">{/* So'rovlar */}</TabsContent>
             <TabsContent value="profit"><ProfitDashboard /></TabsContent>
             <TabsContent value="trends"><TrendingProducts /></TabsContent>
-            <TabsContent value="chat">
-              <Card className="h-[600px]">
-                <CardHeader><CardTitle><MessageCircle className="w-5 h-5 inline mr-2" />Admin bilan Chat</CardTitle></CardHeader>
-                <CardContent className="p-0 h-full">
-                  <Suspense fallback={
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
-                        <p className="text-muted-foreground">Chat yuklanmoqda...</p>
-                      </div>
-                    </div>
-                  }>
-                    <ChatSystem partnerId={partner?.id} />
-                  </Suspense>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
         </div>
       </div>
