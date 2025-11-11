@@ -891,46 +891,101 @@ export default function AdminPanel() {
 
             {/* Settings Tab */}
             <TabsContent value="settings" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="shadow-elegant">
+              {/* Marketplace API - Full Width */}
+              <Card className="shadow-elegant">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Globe className="w-5 h-5" />
+                    Marketplace API Sozlamalari
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Marketplace platformalari bilan integratsiya uchun API kalitlarini sozlang
+                  </p>
+                </CardHeader>
+                <CardContent className="pt-6">
+                  <MarketplaceApiConfig />
+                </CardContent>
+              </Card>
+
+              {/* System Settings */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="shadow-elegant hover-lift">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                      <Globe className="w-5 h-5" />
-                      Marketplace API Sozlamalari
+                      <Database className="w-5 h-5" />
+                      Ma'lumotlar Bazasi
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <MarketplaceApiConfig />
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Database sozlamalari va backup
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Jami yozuvlar:</span>
+                        <span className="font-semibold">{partners.length + fulfillmentRequests.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Hamkorlar:</span>
+                        <span className="font-semibold">{partners.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>So'rovlar:</span>
+                        <span className="font-semibold">{fulfillmentRequests.length}</span>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
-                <Card className="shadow-elegant">
+                <Card className="shadow-elegant hover-lift">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="w-5 h-5" />
+                      Xavfsizlik
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Tizim xavfsizligi va ruxsatlar
+                    </p>
+                    <div className="space-y-2">
+                      <Badge variant="default" className="w-full justify-center">
+                        SSL Faol
+                      </Badge>
+                      <Badge variant="default" className="w-full justify-center">
+                        2FA Yoqilgan
+                      </Badge>
+                      <Badge variant="default" className="w-full justify-center">
+                        Session Secure
+                      </Badge>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="shadow-elegant hover-lift">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Settings className="w-5 h-5" />
-                      Tizim Sozlamalari
+                      Tizim
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold">Platform Sozlamalari</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Tizim sozlamalari va konfiguratsiyalar
-                      </p>
-                    </div>
-                    <div className="space-y-2">
-                      <Button variant="outline" className="w-full justify-start">
-                        <Database className="w-4 h-4 mr-2" />
-                        Ma'lumotlar Bazasi
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Shield className="w-4 h-4 mr-2" />
-                        Xavfsizlik
-                      </Button>
-                      <Button variant="outline" className="w-full justify-start">
-                        <Globe className="w-4 h-4 mr-2" />
-                        API Sozlamalari
-                      </Button>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Umumiy tizim sozlamalari
+                    </p>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span>Versiya:</span>
+                        <span className="font-semibold">2.0.1</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Node:</span>
+                        <span className="font-semibold">v20.x</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Database:</span>
+                        <span className="font-semibold">SQLite</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

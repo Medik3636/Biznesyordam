@@ -319,8 +319,11 @@ export function registerRoutes(app: express.Application): Server {
 
   // Partner routes
   app.get("/api/partners/me", requirePartner, asyncHandler(async (req: Request, res: Response) => {
+    console.log('🔍 GET /api/partners/me - User ID:', req.session?.user?.id);
     const partner = await storage.getPartnerByUserId(req.session!.user!.id);
+    console.log('📦 Partner found:', partner ? 'Yes' : 'No');
     if (!partner) {
+      console.log('❌ Partner not found for user:', req.session!.user!.id);
       return res.status(404).json({ 
         message: "Hamkor ma'lumotlari topilmadi",
         code: "PARTNER_NOT_FOUND"

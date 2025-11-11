@@ -73,6 +73,26 @@ export function LoginForm({ onSuccess, isAdmin = false }: LoginFormProps) {
         </p>
       </CardHeader>
       <CardContent>
+        {/* Test Credentials Info */}
+        {!isAdmin && (
+          <Alert className="mb-4 bg-blue-50 border-blue-200">
+            <AlertDescription className="text-sm text-blue-800">
+              <strong>Test Hisob:</strong><br />
+              Username: <code className="bg-blue-100 px-2 py-1 rounded">testpartner</code><br />
+              Parol: <code className="bg-blue-100 px-2 py-1 rounded">Partner2024!</code>
+            </AlertDescription>
+          </Alert>
+        )}
+        {isAdmin && (
+          <Alert className="mb-4 bg-green-50 border-green-200">
+            <AlertDescription className="text-sm text-green-800">
+              <strong>Admin Hisob:</strong><br />
+              Username: <code className="bg-green-100 px-2 py-1 rounded">admin</code><br />
+              Parol: <code className="bg-green-100 px-2 py-1 rounded">Admin2024!</code>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <Alert variant="destructive">
