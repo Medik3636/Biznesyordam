@@ -225,7 +225,6 @@ async function initializeSQLite() {
       user_id TEXT PRIMARY KEY,
       can_manage_admins BOOLEAN NOT NULL DEFAULT 0,
       can_manage_content BOOLEAN NOT NULL DEFAULT 0,
-      can_manage_chat BOOLEAN NOT NULL DEFAULT 0,
       can_view_reports BOOLEAN NOT NULL DEFAULT 0,
       can_receive_products BOOLEAN NOT NULL DEFAULT 0,
       can_activate_partners BOOLEAN NOT NULL DEFAULT 0,
@@ -271,9 +270,9 @@ async function seedSQLiteData(sqlite: Database.Database) {
       
       // Create admin permissions
       sqlite.prepare(`
-        INSERT INTO admin_permissions (user_id, can_manage_admins, can_manage_content, can_manage_chat, can_view_reports, can_receive_products, can_activate_partners, can_manage_integrations)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(adminId, 1, 1, 1, 1, 1, 1, 1);
+        INSERT INTO admin_permissions (user_id, can_manage_admins, can_manage_content, can_view_reports, can_receive_products, can_activate_partners, can_manage_integrations)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(adminId, 1, 1, 1, 1, 1, 1);
       
       // Create test partner
       const partnerPassword = await bcrypt.hash("Partner2024!", 10);

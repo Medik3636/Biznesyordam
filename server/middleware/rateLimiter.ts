@@ -54,16 +54,3 @@ export const uploadLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-// Moderate rate limiter for chat endpoints
-export const chatLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 30, // 30 messages per minute
-  message: {
-    message: 'Juda ko\'p xabar yuborildi. Iltimos, biroz sekinroq yuboring.',
-    code: 'CHAT_RATE_LIMIT_EXCEEDED',
-    retryAfter: '1 minute'
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});

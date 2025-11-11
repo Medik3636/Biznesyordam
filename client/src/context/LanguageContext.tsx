@@ -59,7 +59,6 @@ const translations = {
   'dashboard.analytics': 'Statistikalar',
   'dashboard.requests': 'So\'rovlar',
   'dashboard.products': 'Mahsulotlar',
-  'dashboard.chat': 'Chat',
   'dashboard.logout': 'Chiqish',
 
   // Forms
